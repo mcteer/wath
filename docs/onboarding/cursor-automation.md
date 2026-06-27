@@ -12,12 +12,13 @@ Use Cursor Automations to trigger onboarding and poll PR merge status without a 
 
 Consumer repos point at the **wath-core HTTP endpoint**. Application identity lives in **`wath.json` → `repo`** — the agent passes it on tool calls, not in `mcp.json`.
 
-`.cursor/mcp.json` (Wath + auth only — do not add repo headers or extra servers):
+`.cursor/mcp.json` is **developer-owned** — configure once, never modified by `wath.onboard`:
 
 ```json
 {
   "mcpServers": {
-    "wath": {
+    "Wath": {
+      "type": "streamable-http",
       "url": "http://127.0.0.1:8080/mcp",
       "headers": {
         "Authorization": "Bearer dev-local-token"
@@ -39,9 +40,7 @@ Use **`127.0.0.1`**, not `localhost`, for local dev (avoids IPv6 resolution issu
 
 For non-dev environments, replace `dev-local-token` with your issued bearer token.
 
-During onboarding materialization (`wath onboard --materialize`), the engine writes this file from `WATH_MCP_URL` in the Wath deploy environment.
-
-In Cursor Desktop, ask the agent: **"Run wath.onboard"** — the agent reads `wath.json` and passes `repo`. No duplicate URLs.
+In Cursor Desktop, ask the agent: **"Run wath.onboard"** — the agent reads `wath.json` and passes `repo`. Wath never modifies `.cursor/mcp.json`.
 
 Set `WATH_MCP_URL` when launching cloud agents from the engine so remote agents reach the same host.
 

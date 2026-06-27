@@ -9,7 +9,7 @@ Files in this directory are **installed into application repos** when a team ado
 | `wath.json.example` | **Starter template** — copy to `wath.json` and fill in your repo |
 | `wath.json` | **Living integration manifest** (not in this directory; you create it in your app repo) |
 | `schema/wath.schema.json` | JSON Schema for the manifest |
-| `.cursor/mcp.json` | Wath MCP only — triggers Cloud Agents via wath-core |
+| `.cursor/mcp.json` | Developer-owned MCP config — installed once, never modified by Wath |
 | `.cursor/environment.json` | Sandbox install/start for Tier-1 verification |
 | `.cursor/rules/*.mdc` | Agent process and standard-scoped rules |
 | `.github/PULL_REQUEST_TEMPLATE/wath-onboarding.md` | PR template for Wath onboarding PRs |

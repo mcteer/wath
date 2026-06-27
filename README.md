@@ -82,12 +82,13 @@ Install the consumer template (copies `.cursor/mcp.json` — Wath + auth only):
 /path/to/wath/scripts/install-consumer-template.sh .
 ```
 
-`.cursor/mcp.json` never includes repo URLs — identity comes from `wath.json` when the agent calls Wath:
+`.cursor/mcp.json` is **developer-owned** — copy from the template once, then never modified by Wath:
 
 ```json
 {
   "mcpServers": {
-    "wath": {
+    "Wath": {
+      "type": "streamable-http",
       "url": "http://127.0.0.1:8080/mcp",
       "headers": {
         "Authorization": "Bearer dev-local-token"
@@ -96,6 +97,8 @@ Install the consumer template (copies `.cursor/mcp.json` — Wath + auth only):
   }
 }
 ```
+
+`wath.onboard` does **not** write or change this file. Repo identity comes from `wath.json` when the agent calls Wath.
 
 Use `127.0.0.1` (not `localhost`) for local Podman. The bearer token must match `WATH_TOKEN` in `deploy/.env`.
 

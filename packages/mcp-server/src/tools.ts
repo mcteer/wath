@@ -19,7 +19,7 @@ export const WATH_TOOL_DEFINITIONS = [
       properties: {
         repo: {
           type: "string",
-          description: "Required unless MCP headers were synced from wath.json. The repo field from wath.json.",
+          description: "The repo field from wath.json.",
         },
         consumerPath: {
           type: "string",

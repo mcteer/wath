@@ -34,20 +34,3 @@ export function buildMcpServers(config: WathConfig): Record<string, McpServerCon
 
   return servers;
 }
-
-/** Consumer-repo `.cursor/mcp.json` — Wath + auth only. Repo identity comes from wath.json via tool args. */
-export function buildConsumerMcpJson(config: WathConfig): {
-  mcpServers: Record<string, { url: string; headers?: Record<string, string> }>;
-} {
-  const url = config.wathMcpUrl ?? "http://127.0.0.1:8080/mcp";
-  const token = process.env.WATH_TOKEN?.trim() || "dev-local-token";
-
-  return {
-    mcpServers: {
-      wath: {
-        url,
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    },
-  };
-}
