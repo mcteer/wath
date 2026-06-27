@@ -64,15 +64,30 @@ export function recordAgentPr(
   if (!state) throw new Error(`No application state for ${appId}`);
 
   if (type === "manifest") {
-    state.manifest.status = "pending_pr";
-    state.manifest.pr_url = prUrl ?? null;
+    const newUrl = prUrl ?? null;
+    if (state.manifest.status === "pending_pr" && state.manifest.pr_url && newUrl && state.manifest.pr_url !== newUrl) {
+      appendHistory(state, "manifest_pr_duplicate", `${newUrl} (existing: ${state.manifest.pr_url})`);
+    } else {
+      state.manifest.status = "pending_pr";
+      state.manifest.pr_url = newUrl;
+      appendHistory(state, "manifest_pr_opened", prUrl);
+    }
     state.phase = "await_merge";
-    appendHistory(state, "manifest_pr_opened", prUrl);
   } else if (standardId && state.integrations[standardId]) {
-    state.integrations[standardId].status = "pr_open";
-    state.integrations[standardId].pr_url = prUrl ?? null;
+    const entry = state.integrations[standardId];
+    const newUrl = prUrl ?? null;
+    if (entry.status === "pr_open" && entry.pr_url && newUrl && entry.pr_url !== newUrl) {
+      appendHistory(
+        state,
+        "integration_pr_duplicate",
+        `${standardId} ${newUrl} (existing: ${entry.pr_url})`
+      );
+    } else {
+      entry.status = "pr_open";
+      entry.pr_url = newUrl;
+      appendHistory(state, "integration_pr_opened", `${standardId} ${newUrl ?? ""}`);
+    }
     state.phase = "await_merge";
-    appendHistory(state, "integration_pr_opened", `${standardId} ${prUrl ?? ""}`);
   }
 
   saveApplicationState(wathRoot, appId, state);
