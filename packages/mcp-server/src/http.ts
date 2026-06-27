@@ -4,9 +4,8 @@
  */
 import type { Request, Response } from "express";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
-import { createWathMcpServer } from "./mcp-server.js";
+import { registerMcpHttpRoutes } from "./mcp-http-handlers.js";
 import { executeWathTool } from "./tools.js";
 
 const PORT = Number(process.env.PORT ?? process.env.WATH_PORT ?? 8080);
@@ -97,26 +96,8 @@ async function main(): Promise<void> {
     }
   });
 
-  // MCP Streamable HTTP (stateless — one transport per request)
-  app.post(MCP_PATH, async (req: Request, res: Response) => {
-    if (!authorize(req.headers.authorization)) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    try {
-      const server = createWathMcpServer();
-      const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: undefined,
-      });
-      await server.connect(transport);
-      await transport.handleRequest(req, res, req.body);
-    } catch (err) {
-      console.error("[wath] MCP request failed:", err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: "MCP internal error" });
-      }
-    }
-  });
+  // MCP Streamable HTTP — stateful sessions (POST initialize + GET SSE + DELETE)
+  registerMcpHttpRoutes(app, MCP_PATH, authorize);
 
   app.listen(PORT, HOST, () => {
     console.error(`[wath] core listening on http://${HOST}:${PORT}`);
