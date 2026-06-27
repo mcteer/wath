@@ -9,6 +9,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 
 import { createWathMcpServer } from "./mcp-server.js";
+import { runWithRequestContext } from "./request-context.js";
 
 const transports: Record<string, StreamableHTTPServerTransport> = {};
 
@@ -49,14 +50,18 @@ async function mcpPostHandler(req: Request, res: Response): Promise<void> {
 
       const server = createWathMcpServer();
       await server.connect(transport);
-      await transport.handleRequest(req, res, req.body);
+      await runWithRequestContext({ headers: req.headers }, () =>
+        transport!.handleRequest(req, res, req.body)
+      );
       return;
     } else {
       jsonRpcError(res, 400, "Bad Request: No valid session ID provided");
       return;
     }
 
-    await transport.handleRequest(req, res, req.body);
+    await runWithRequestContext({ headers: req.headers }, () =>
+      transport!.handleRequest(req, res, req.body)
+    );
   } catch (err) {
     console.error("[wath] MCP POST failed:", err);
     if (!res.headersSent) {

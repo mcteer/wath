@@ -36,7 +36,10 @@ export function buildMcpServers(config: WathConfig): Record<string, McpServerCon
 }
 
 /** Consumer-repo `.cursor/mcp.json` shape for materialization. */
-export function buildConsumerMcpJson(config: WathConfig): {
+export function buildConsumerMcpJson(
+  config: WathConfig,
+  consumerRepoUrl?: string
+): {
   mcpServers: Record<string, { url: string; headers?: Record<string, string> }>;
 } {
   const inline = buildMcpServers(config);
@@ -46,9 +49,16 @@ export function buildConsumerMcpJson(config: WathConfig): {
     if ("url" in server && server.url) {
       mcpServers[name] = {
         url: server.url,
-        ...(server.headers ? { headers: server.headers } : {}),
+        ...(server.headers ? { headers: { ...server.headers } } : {}),
       };
     }
+  }
+
+  if (consumerRepoUrl && mcpServers.wath) {
+    mcpServers.wath.headers = {
+      ...mcpServers.wath.headers,
+      "X-Wath-Consumer-Repo": consumerRepoUrl,
+    };
   }
 
   return { mcpServers };

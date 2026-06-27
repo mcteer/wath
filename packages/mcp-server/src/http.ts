@@ -6,6 +6,7 @@ import type { Request, Response } from "express";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 
 import { registerMcpHttpRoutes } from "./mcp-http-handlers.js";
+import { runWithRequestContext } from "./request-context.js";
 import { executeWathTool } from "./tools.js";
 
 const PORT = Number(process.env.PORT ?? process.env.WATH_PORT ?? 8080);
@@ -42,7 +43,7 @@ async function main(): Promise<void> {
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type, Accept, Authorization, mcp-session-id, mcp-protocol-version, Last-Event-ID"
+      "Content-Type, Accept, Authorization, mcp-session-id, mcp-protocol-version, Last-Event-ID, X-Wath-Consumer-Repo"
     );
     res.setHeader("Access-Control-Expose-Headers", "mcp-session-id, mcp-protocol-version");
     res.setHeader("Access-Control-Allow-Private-Network", "true");
@@ -71,7 +72,9 @@ async function main(): Promise<void> {
       return;
     }
     try {
-      const result = await executeWathTool("wath.onboard", (req.body ?? {}) as Record<string, unknown>);
+      const result = await runWithRequestContext({ headers: req.headers }, () =>
+        executeWathTool("wath.onboard", (req.body ?? {}) as Record<string, unknown>)
+      );
       res.json(result);
     } catch (err) {
       res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
@@ -86,10 +89,12 @@ async function main(): Promise<void> {
     try {
       const target = String(req.query.target ?? "");
       const wathPath = req.query.wathPath ? String(req.query.wathPath) : undefined;
-      const result = await executeWathTool("wath.status", {
-        target,
-        ...(wathPath ? { wathPath } : {}),
-      });
+      const result = await runWithRequestContext({ headers: req.headers }, () =>
+        executeWathTool("wath.status", {
+          target,
+          ...(wathPath ? { wathPath } : {}),
+        })
+      );
       res.json(result);
     } catch (err) {
       res.status(500).json({ error: err instanceof Error ? err.message : String(err) });

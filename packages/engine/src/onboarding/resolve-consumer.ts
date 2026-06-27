@@ -1,29 +1,51 @@
 import { existsSync, readdirSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { join, relative } from "node:path";
 
-import { parseWathSpec } from "../requirements/parser.js";
-import { resolveRepoRoot } from "../standards/registry.js";
 import { resolveApplicationId } from "../lifecycle/state.js";
+import { fetchWathSpecFromRepo } from "../requirements/fetch-wath-spec.js";
+import { parseWathSpec, type WathSpec } from "../requirements/parser.js";
+import { resolveRepoRoot } from "../standards/registry.js";
 
 export interface ResolveConsumerInput {
   consumerRepoPath?: string;
-  /** Repo URL, org/repo app id, or consumer path relative to WATH_ROOT. */
+  /** Repo URL, org/repo app id, or local path under WATH_ROOT. */
   target?: string;
   repoUrl?: string;
+  /** From X-Wath-Consumer-Repo MCP/HTTP header — the app repo declaring itself. */
+  consumerRepoHeader?: string;
 }
 
 export interface ResolvedConsumer {
-  consumerRepoPath: string;
   repo: string;
   appId: string;
+  wathSpec: WathSpec;
+  /** Primary spec source for cloud onboarding. */
+  source: "remote" | "local";
+  /** Absolute path to wath.json when a local checkout exists. */
+  wathPath?: string;
+  /** Path relative to WATH_ROOT when locally mounted (optional — verify/materialize only). */
+  localConsumerPath?: string;
 }
 
 function normalizeRepoUrl(url: string): string {
-  return url.replace(/\.git$/, "").replace(/\/$/, "").toLowerCase();
+  return url.replace(/\.git$/, "").replace(/\/$/, "");
 }
 
 function isAppId(value: string): boolean {
   return /^[^/]+\/[^/]+$/.test(value) && !value.includes("github.com");
+}
+
+function toRepoUrl(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.includes("github.com")) {
+    return normalizeRepoUrl(trimmed);
+  }
+  if (isAppId(trimmed)) {
+    return `https://github.com/${trimmed}`;
+  }
+  throw new Error(
+    `Invalid repo target "${value}" — use https://github.com/org/repo or org/repo`
+  );
 }
 
 function searchRoots(wathRoot: string): string[] {
@@ -34,125 +56,109 @@ function searchRoots(wathRoot: string): string[] {
   return relRoots.map((r) => join(wathRoot, r)).filter((p) => existsSync(p));
 }
 
-function discoverConsumers(wathRoot: string): ResolvedConsumer[] {
-  const found: ResolvedConsumer[] = [];
+function findLocalMountForRepo(
+  wathRoot: string,
+  repoUrl: string
+): { localConsumerPath: string; wathPath: string } | null {
+  const target = normalizeRepoUrl(repoUrl).toLowerCase();
 
   for (const root of searchRoots(wathRoot)) {
     for (const entry of readdirSync(root, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue;
-      const consumerRoot = join(root, entry.name);
-      const wathJson = join(consumerRoot, "wath.json");
+      const wathJson = join(root, entry.name, "wath.json");
       if (!existsSync(wathJson)) continue;
-
       try {
         const spec = parseWathSpec(wathJson);
-        const consumerRepoPath = relative(wathRoot, consumerRoot);
-        found.push({
-          consumerRepoPath,
-          repo: spec.repo,
-          appId: resolveApplicationId(spec.repo),
-        });
+        if (normalizeRepoUrl(spec.repo).toLowerCase() === target) {
+          const localConsumerPath = relative(wathRoot, join(root, entry.name));
+          return { localConsumerPath, wathPath: wathJson };
+        }
       } catch {
-        // skip invalid consumer trees
+        // skip invalid trees
       }
     }
   }
-
-  return found.sort((a, b) => a.consumerRepoPath.localeCompare(b.consumerRepoPath));
+  return null;
 }
 
-function resolveExistingPath(wathRoot: string, path: string): ResolvedConsumer | null {
-  const consumerRepoPath = path;
-  const wathJson = join(wathRoot, consumerRepoPath, "wath.json");
-  if (!existsSync(wathJson)) return null;
-  const spec = parseWathSpec(wathJson);
-  return {
-    consumerRepoPath,
-    repo: spec.repo,
-    appId: resolveApplicationId(spec.repo),
-  };
-}
+function resolveRepoUrlFromInput(input: ResolveConsumerInput): string | undefined {
+  const explicit =
+    input.consumerRepoHeader?.trim() ||
+    input.target?.trim() ||
+    input.repoUrl?.trim();
 
-function matchTarget(candidates: ResolvedConsumer[], target: string): ResolvedConsumer | undefined {
-  const normalizedTarget = normalizeRepoUrl(target);
-  return candidates.find(
-    (c) =>
-      c.consumerRepoPath === target ||
-      c.appId === target ||
-      normalizeRepoUrl(c.repo) === normalizedTarget ||
-      (isAppId(target) && c.appId === target)
-  );
+  if (explicit) {
+    if (explicit.includes("/") && !explicit.includes("github.com") && !isAppId(explicit)) {
+      return undefined;
+    }
+    return toRepoUrl(explicit);
+  }
+
+  const fromEnv = process.env.WATH_DEFAULT_CONSUMER_REPO?.trim();
+  if (fromEnv) return toRepoUrl(fromEnv);
+
+  return undefined;
 }
 
 /**
- * Resolve which consumer repo to onboard when the caller omits consumerPath.
- * Prefers explicit paths, then repo/app id, then WATH_DEFAULT_CONSUMER_PATH,
- * then the sole discovered consumer under consumers/ and examples/.
+ * Resolve the application to onboard by repo URL (from header, args, or wath.json on GitHub).
+ * Local mounts under consumers/ are optional — used only for verify/materialize when present.
  */
-export function resolveConsumerRepoPath(
+export async function resolveConsumer(
   input: ResolveConsumerInput = {},
   wathRoot?: string
-): ResolvedConsumer {
+): Promise<ResolvedConsumer> {
   const root = wathRoot ?? resolveRepoRoot();
 
-  if (input.consumerRepoPath?.trim()) {
-    const resolved = resolveExistingPath(root, input.consumerRepoPath.trim());
-    if (!resolved) {
-      throw new Error(
-        `Consumer path has no wath.json: ${input.consumerRepoPath}`
-      );
+  let repoUrl = resolveRepoUrlFromInput(input);
+
+  if (!repoUrl && input.consumerRepoPath?.trim()) {
+    const wathJson = join(root, input.consumerRepoPath.trim(), "wath.json");
+    if (existsSync(wathJson)) {
+      repoUrl = normalizeRepoUrl(parseWathSpec(wathJson).repo);
     }
-    return resolved;
   }
 
-  const target = (input.target ?? input.repoUrl)?.trim();
-  if (target) {
-    const asPath = resolveExistingPath(root, target);
-    if (asPath) return asPath;
-
-    const candidates = discoverConsumers(root);
-    const matched = matchTarget(candidates, target);
-    if (matched) return matched;
-
+  if (!repoUrl) {
     throw new Error(
-      `No consumer found for target "${target}". Known: ${candidates.map((c) => c.appId).join(", ") || "(none)"}`
+      "Application repo required. Set X-Wath-Consumer-Repo on the Wath MCP client, pass target/repoUrl, or set WATH_DEFAULT_CONSUMER_REPO."
     );
   }
 
-  const defaultPath = process.env.WATH_DEFAULT_CONSUMER_PATH?.trim();
-  if (defaultPath) {
-    const resolved = resolveExistingPath(root, defaultPath);
-    if (resolved) return resolved;
-    throw new Error(
-      `WATH_DEFAULT_CONSUMER_PATH is set but wath.json not found: ${defaultPath}`
-    );
+  const local = findLocalMountForRepo(root, repoUrl);
+  let wathSpec: WathSpec;
+  let source: ResolvedConsumer["source"] = "remote";
+
+  try {
+    wathSpec = await fetchWathSpecFromRepo(repoUrl);
+  } catch (remoteErr) {
+    if (local) {
+      wathSpec = parseWathSpec(local.wathPath);
+      source = "local";
+    } else {
+      throw remoteErr;
+    }
   }
 
-  const candidates = discoverConsumers(root);
-  if (candidates.length === 1) {
-    return candidates[0];
-  }
-
-  if (candidates.length === 0) {
-    throw new Error(
-      "No consumer repos found. Mount a repo under consumers/ or set WATH_DEFAULT_CONSUMER_PATH."
-    );
-  }
-
-  const consumerMounts = candidates.filter((c) => c.consumerRepoPath.startsWith("consumers/"));
-  if (consumerMounts.length === 1) {
-    return consumerMounts[0];
-  }
-
-  throw new Error(
-    `Multiple consumer repos found — specify target (repo URL or org/repo): ${candidates.map((c) => `${c.appId} → ${c.consumerRepoPath}`).join("; ")}`
-  );
+  return {
+    repo: wathSpec.repo,
+    appId: resolveApplicationId(wathSpec.repo),
+    wathSpec,
+    source,
+    wathPath: local?.wathPath,
+    localConsumerPath: local?.localConsumerPath,
+  };
 }
 
-/** Absolute filesystem root for a resolved consumer path. */
-export function consumerRootFromPath(
-  wathRoot: string,
-  consumerRepoPath: string
-): string {
-  return resolve(wathRoot, consumerRepoPath);
+/** @deprecated Use resolveConsumer */
+export async function resolveConsumerRepoPath(
+  input: ResolveConsumerInput = {},
+  wathRoot?: string
+): Promise<ResolvedConsumer & { consumerRepoPath: string }> {
+  const resolved = await resolveConsumer(input, wathRoot);
+  return {
+    ...resolved,
+    consumerRepoPath:
+      resolved.localConsumerPath ?? `remote/${resolved.appId.replace("/", "-")}`,
+  };
 }

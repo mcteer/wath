@@ -3,22 +3,24 @@ import {
   audit,
   getLifecycleStatus,
   recordMerge,
-  resolveConsumerRepoPath,
+  resolveConsumer,
   runLifecycle,
 } from "@wath/engine";
+
+import { getConsumerRepoHeader } from "./request-context.js";
 
 export const WATH_TOOL_DEFINITIONS = [
   {
     name: "wath.onboard",
     description:
-      "Onboard an app to Wath (wath.json). Call with no arguments to run the sole mounted consumer through integrate+validate and open an integration PR via Cloud Agents.",
+      "Onboard an app to Wath (wath.json). Call with no arguments from the consumer repo (X-Wath-Consumer-Repo header) to run integrate+validate via Cloud Agents and open an integration PR.",
     inputSchema: {
       type: "object",
       properties: {
         consumerPath: {
           type: "string",
           description:
-            "Optional. Consumer path relative to WATH_ROOT. Omitted when only one consumer is mounted.",
+            "Optional. Local consumer checkout under WATH_ROOT (verify/materialize only). Cloud onboarding uses X-Wath-Consumer-Repo or target.",
         },
         target: {
           type: "string",
@@ -50,7 +52,7 @@ export const WATH_TOOL_DEFINITIONS = [
   {
     name: "wath.status",
     description:
-      "Return onboarding lifecycle state. Omit target when only one consumer is mounted.",
+      "Return onboarding lifecycle state. Omit target when X-Wath-Consumer-Repo is set on the MCP client.",
     inputSchema: {
       type: "object",
       properties: {
@@ -116,6 +118,7 @@ export async function executeWathTool(
           ...(repoUrl ? { repoUrl } : {}),
           ...(target ? { target } : {}),
           ...(args.throughValidate === false ? { throughValidate: false } : {}),
+          consumerRepoHeader: getConsumerRepoHeader(),
         }
       );
     }
@@ -124,7 +127,9 @@ export async function executeWathTool(
       if (target) {
         return getLifecycleStatus(target, args.wathPath ? String(args.wathPath) : undefined);
       }
-      const resolved = resolveConsumerRepoPath({});
+      const resolved = await resolveConsumer({
+        consumerRepoHeader: getConsumerRepoHeader(),
+      });
       return getLifecycleStatus(resolved.repo, args.wathPath ? String(args.wathPath) : undefined);
     }
     case "wath.record_merge":

@@ -31,6 +31,11 @@ export function materializeConsumerConfig(
   options: { force?: boolean } = {}
 ): MaterializeResult {
   const wathRoot = context.repoRoot;
+  if (!context.consumerRepoPath || context.consumerRoot === context.wathSpec.repo) {
+    throw new Error(
+      "Materialize requires a local consumer checkout under WATH_ROOT (optional dev mount)."
+    );
+  }
   const consumerRoot = resolveConsumerRoot(wathRoot, context.consumerRepoPath);
   const templateRoot = join(wathRoot, "templates/consumer");
   const filesWritten: string[] = [];
@@ -84,7 +89,7 @@ export function materializeConsumerConfig(
     copyIfNeeded(prTemplateSrc, prTemplateDest);
   }
 
-  const spec = parseWathSpec(context.wathPath);
+  const spec = context.wathSpec;
   const environmentJson = generateEnvironmentConfig(spec, context.standard);
   const envPath = join(cursorDir, "environment.json");
   if (!existsSync(envPath) || options.force) {
@@ -94,7 +99,10 @@ export function materializeConsumerConfig(
 
   const mcpPath = join(cursorDir, "mcp.json");
   if (!existsSync(mcpPath) || options.force) {
-    writeFileSync(mcpPath, JSON.stringify(buildConsumerMcpJson(config), null, 2) + "\n");
+    writeFileSync(
+      mcpPath,
+      JSON.stringify(buildConsumerMcpJson(config, spec.repo), null, 2) + "\n"
+    );
     filesWritten.push(mcpPath);
   }
 
@@ -119,7 +127,7 @@ export function resolveConsumerRepoUrl(
   if (config.consumerRepoUrl) {
     return config.consumerRepoUrl;
   }
-  const spec = parseWathSpec(context.wathPath);
+  const spec = context.wathSpec;
   if (spec.repo.startsWith("http")) {
     return spec.repo;
   }

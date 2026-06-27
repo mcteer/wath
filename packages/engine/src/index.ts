@@ -22,6 +22,7 @@ export {
   listRequestedStandardIds,
   normalizeServices,
   parseWathSpec,
+  parseWathSpecJson,
   parseIntegrationsSpec,
   parseRequirements,
   resolveWathPath,
@@ -30,6 +31,8 @@ export {
   SERVICE_ALIASES,
 } from "./requirements/parser.js";
 export type { WathSpec, WathIntegrationsSpec, RequirementsSlices } from "./requirements/parser.js";
+
+export { fetchWathSpecFromRepo } from "./requirements/fetch-wath-spec.js";
 
 export { writeWathFeedback, writeManifestFeedback } from "./requirements/writer.js";
 
@@ -49,8 +52,8 @@ export {
 export { loadOnboardingPrTemplate, prSubmissionInstructions } from "./onboarding/pr-template.js";
 export { materializeConsumerConfig } from "./onboarding/materialize.js";
 export {
+  resolveConsumer,
   resolveConsumerRepoPath,
-  consumerRootFromPath,
 } from "./onboarding/resolve-consumer.js";
 export type { ResolveConsumerInput, ResolvedConsumer } from "./onboarding/resolve-consumer.js";
 export { loadConfig } from "./config/env.js";
