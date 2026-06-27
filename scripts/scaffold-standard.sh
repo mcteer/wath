@@ -12,6 +12,8 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET="${REPO_ROOT}/standards/${BU}/${ID}"
 TEMPLATE="${REPO_ROOT}/standards/_template"
 
+mkdir -p "${REPO_ROOT}/standards/${BU}"
+
 if [ -d "${TARGET}" ]; then
   echo "Error: ${TARGET} already exists"
   exit 1
@@ -35,4 +37,5 @@ echo "  1. Edit ${TARGET}/SKILL.md with SME rules"
 echo "  2. Edit ${TARGET}/schema/integration.params.schema.json"
 echo "  3. Implement ${TARGET}/conformance/test_conformance.py (1:1 rule→test naming)"
 echo "  4. Register in standards/registry.yaml"
-echo "  5. Add glob-scoped rule to templates/consumer/.cursor/rules/standards/ if needed"
+echo "  5. Add onboarding.artifacts (+ optional sandbox) to standard.yaml"
+echo "  6. Add glob-scoped rule to templates/consumer/.cursor/rules/standards/ if needed"

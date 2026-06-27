@@ -45,6 +45,7 @@ examples/           Runnable demos — see `examples/consumer-demo/README.md`
 
 - [Contributing](./CONTRIBUTING.md) — how to add standards and submit PRs to **Wath**
 - [Consumer templates](./templates/consumer/README.md) — app-repo intake, PR template, CI workflow
+- [Extension seams](./docs/extensions/README.md) — cold-extension prep (add standard, change runtime, fleet)
 
 ## Core invariants
 

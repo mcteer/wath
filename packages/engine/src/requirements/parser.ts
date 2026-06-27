@@ -9,6 +9,20 @@ export interface RequirementsSlices {
   raw: string;
 }
 
+/** Auth method prescribed from runtime (standard SKILL §4 table for vault-dynamic-secrets). */
+export function deriveAuthMethod(runtime: string): string {
+  switch (runtime) {
+    case "kubernetes":
+      return "kubernetes";
+    case "nomad":
+      return "jwt (Nomad workload identity)";
+    case "vm":
+      return "approle / cloud identity";
+    default:
+      return "unknown";
+  }
+}
+
 /**
  * Parse INTEGRATION_REQUIREMENTS.md into structured slices.
  * Lightweight table extraction — sufficient for demo; extend as needed.

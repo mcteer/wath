@@ -1,0 +1,15 @@
+---
+description: "Egress allowlist conventions; load when editing NetworkPolicy or Nomad egress config."
+globs: ["**/networkpolicy*.yaml", "**/networkpolicy*.yml", "nomad/**/*egress*", "**/integration.params.json"]
+alwaysApply: false
+---
+
+# Egress policy — working rules
+
+Governed by `@standards/networking/egress-policy/SKILL.md`. Enforced by
+`@standards/networking/egress-policy/conformance/test_conformance.py`.
+
+- **EGR-001** Explicit destination per dependency — no `*` hosts.
+- **EGR-002** Default deny — no `0.0.0.0/0` unless SME-ratified in the PR.
+
+Emit `integration.params.json` first; render NetworkPolicy or Nomad egress from it.
