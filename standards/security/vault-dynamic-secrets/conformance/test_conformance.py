@@ -35,8 +35,25 @@ STATIC_CRED_PATTERNS = [
     re.compile(r"\bpassword\s*[:=]\s*['\"]?[^\s'\"]{6,}", re.I),
     re.compile(r"secret/data/.*(db|database|postgres|mysql)", re.I),        # KV mount for DB creds
 ]
-# Files that legitimately *describe* the dynamic flow and shouldn't trip the scanner.
-SCAN_EXCLUDE_DIRS = {"vault", "conformance", "schema", ".git", "node_modules", ".wath"}
+# Directories outside consumer integration artifacts (VDS-001 repo scan).
+# `wath` — CI checks out the Wath standards repo under the workspace for verify.sh.
+# `standards` — vendored standard tree (not app-owned integration files).
+SCAN_EXCLUDE_DIRS = {
+    "vault",
+    "conformance",
+    "schema",
+    "standards",
+    "wath",
+    ".git",
+    "node_modules",
+    ".wath",
+}
+
+
+def _scan_exclude_dirs() -> set[str]:
+    extra = os.environ.get("WATH_SCAN_EXCLUDE", "")
+    extras = {d.strip() for d in extra.split(",") if d.strip()}
+    return SCAN_EXCLUDE_DIRS | extras
 
 
 # ---------- loaders ----------
@@ -73,8 +90,9 @@ def _load_manifests():
 
 
 def _consumer_files():
+    exclude = _scan_exclude_dirs()
     for f in ROOT.rglob("*"):
-        if f.is_file() and not (set(f.relative_to(ROOT).parts) & SCAN_EXCLUDE_DIRS):
+        if f.is_file() and not (set(f.relative_to(ROOT).parts) & exclude):
             if "PULL_REQUEST_TEMPLATE" in f.relative_to(ROOT).parts:
                 continue
             yield f
