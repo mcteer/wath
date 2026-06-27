@@ -53,10 +53,12 @@ Minimal shape (without `_instructions`):
 
 ## Iterative lifecycle
 
+See [docs/onboarding/lifecycle.md](../../docs/onboarding/lifecycle.md) for the full multi-phase flow (manifest enrichment → integrate → validate → merge tracking).
+
 1. User commits `wath.json` (first time or after a change).
-2. Wath validates and generates integration artifacts for each requested service (one standard per run today; multi-service orchestration follows).
-3. On failure → update the same file (user edits `stack` / `services`; Wath writes `feedback`) → re-run `wath onboard`.
-4. On pass → PR to `repo`.
+2. Trigger via **Wath MCP** (`wath.onboard`) in Cursor Desktop or `wath lifecycle` from the CLI.
+3. On failure → update the same file (user edits `stack` / `services`; Wath writes `feedback`) → re-run.
+4. On pass → integration PR to `repo`; state recorded under `state/applications/` in the Wath repo.
 
 ## Install into an app repo
 

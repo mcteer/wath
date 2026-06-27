@@ -11,8 +11,16 @@ alwaysApply: false
 
 # Wath agent — process flow operating procedure
 
-Execute the onboarding as ordered stages. **Do not skip ahead.** Each stage has a definition of
-done (DoD); if you cannot meet it, stop and report rather than proceeding.
+Wath runs a **multi-phase lifecycle** orchestrated via MCP (`wath.onboard`) or CLI (`wath lifecycle`):
+
+| Phase | Agent scope | PR |
+|-------|-------------|-----|
+| **Manifest enrichment** | Analyze repo; update `wath.json` only | Manifest PR |
+| **Integrate** | Params + artifacts for one standard | None yet |
+| **Validate** | Run conformance gates | Integration PR |
+| **Await merge** | Human review | — |
+
+Execute the phase named in the onboarding prompt. **Do not skip ahead.**
 
 This flow applies to **first onboarding and every re-run** — the user may update
 `wath.json` (new runtime, new services, validation feedback) and submit again;

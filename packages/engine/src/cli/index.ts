@@ -1,8 +1,15 @@
 #!/usr/bin/env node
-/** Wath CLI — list standards, dry-run/launch onboarding, run conformance gates. */
+/** Wath CLI — standards, lifecycle onboarding, verification, compliance audit. */
 import { listStandards, resolveRepoRoot, resolveStandard } from "../standards/registry.js";
 import { runOnboarding } from "../onboarding/pipeline.js";
 import { runConformanceGate } from "../verify/runner.js";
+import {
+  audit,
+  getLifecycleStatus,
+  recordMerge,
+  runLifecycle,
+} from "../lifecycle/orchestrator.js";
+import type { OnboardingPhase } from "../lifecycle/types.js";
 
 const [, , command, ...argv] = process.argv;
 
@@ -35,36 +42,109 @@ function parseArgs(args: string[]): ParsedArgs {
   return { flags, positional, options };
 }
 
+function lifecycleIntentFromOptions(
+  consumerPath: string,
+  options: Record<string, string>
+) {
+  return {
+    consumerRepoPath: consumerPath,
+    ...(options["standard-id"] ? { standardId: options["standard-id"] } : {}),
+    ...(options["wath-path"] || options["integrations-path"] || options["requirements-path"]
+      ? {
+          wathPath:
+            options["wath-path"] ??
+            options["integrations-path"] ??
+            options["requirements-path"],
+        }
+      : {}),
+  };
+}
+
 function usage(): void {
   console.log(`Wath — onboarding & conformance engine
 
 Usage:
   wath list                              List registered standards
   wath show <standard-id>                Show standard metadata
-  wath onboard <consumer-path> [opts]    Compose or launch onboarding
+  wath onboard <consumer-path> [opts]    Legacy single-shot onboarding
+  wath lifecycle <consumer-path> [opts]  Multi-phase lifecycle (manifest → integrate → validate)
+  wath status <path|repo-url|org/repo>   Lifecycle state for an application
+  wath record-merge [opts]               Record a merged PR and advance phase
+  wath audit [--apply] [--json]          Compliance audit vs standards registry
   wath verify <standard-id> <artifact-root>  Run conformance gate
 
-Onboard options:
+Lifecycle / onboard options:
   --launch              Launch Cursor cloud/local agent (requires CURSOR_API_KEY)
   --local               Use local agent runtime (default: cloud)
   --dry-run             Compose context + prompt only (default without --launch)
   --materialize         Write .cursor config into consumer repo
   --force-materialize   Overwrite existing .cursor files
   --repo-url <url>      GitHub repo URL for cloud agent
-  --standard-id <id>    Standard ID (optional; inferred from runtime)
-  --wath-path <path>          Alternate wath.json path
-  --integrations-path <path>  Alias for --wath-path (deprecated)
-  --requirements-path <path>  Alias for --wath-path (deprecated)
+  --standard-id <id>    Standard ID for integrate/validate phase
+  --phase <phase>       Force phase (discover, enrich_manifest, integrate, validate, ...)
+  --wath-path <path>    Alternate wath.json path
+
+record-merge options:
+  --app <org/repo>      Application id (required)
+  --type manifest|integration
+  --pr <url>            Merged PR URL
+  --standard <id>       Required for integration merges
 
 Environment:
   CURSOR_API_KEY              Cursor API key (required for --launch)
   WATH_ROOT                   Path to Wath repo root
   WATH_CONSUMER_REPO_URL      GitHub URL for cloud onboarding
   WATH_MODEL                  Model id (default: composer-2.5)
-  WATH_MCP_HASHICORP_DOCS_URL HashiCorp docs MCP URL
-  WATH_MCP_INTERNAL_DOCS_URL  Internal platform docs MCP URL
-  WATH_MCP_URL                Wath MCP server URL
 `);
+}
+
+async function runLifecycleCommand(
+  argv: string[],
+  legacyOnboard = false
+): Promise<void> {
+  const { flags, positional, options } = parseArgs(argv);
+  const consumerPath = positional[0];
+  if (!consumerPath) {
+    console.error(`Usage: wath ${legacyOnboard ? "onboard" : "lifecycle"} <consumer-path> ...`);
+    process.exit(1);
+  }
+
+  const launch = flags.has("--launch");
+
+  if (legacyOnboard && !flags.has("--lifecycle")) {
+    const result = await runOnboarding(lifecycleIntentFromOptions(consumerPath, options), {
+      launch,
+      dryRun: flags.has("--dry-run") || !launch,
+      local: flags.has("--local"),
+      materialize: flags.has("--materialize") || launch,
+      forceMaterialize: flags.has("--force-materialize"),
+      repoUrl: options["repo-url"],
+    });
+    if (launch) {
+      console.error("\n[wath] onboarding complete");
+      console.log(JSON.stringify(result.agent ?? { status: "no agent result" }, null, 2));
+    } else {
+      console.log(JSON.stringify(result, null, 2));
+    }
+    return;
+  }
+
+  const result = await runLifecycle(lifecycleIntentFromOptions(consumerPath, options), {
+    launch,
+    dryRun: flags.has("--dry-run") || !launch,
+    local: flags.has("--local"),
+    materialize: flags.has("--materialize") || launch,
+    forceMaterialize: flags.has("--force-materialize"),
+    repoUrl: options["repo-url"],
+    ...(options.phase ? { phase: options.phase as OnboardingPhase } : {}),
+  });
+
+  if (launch) {
+    console.error(`\n[wath] lifecycle phase=${result.phase} app=${result.appId}`);
+    console.log(JSON.stringify(result.agent ?? { phase: result.phase }, null, 2));
+  } else {
+    console.log(JSON.stringify(result, null, 2));
+  }
 }
 
 async function main(): Promise<void> {
@@ -88,46 +168,47 @@ async function main(): Promise<void> {
       console.log(JSON.stringify({ entry: standard.entry, metadata: standard.metadata }, null, 2));
       break;
     }
-    case "onboard": {
+    case "onboard":
+      await runLifecycleCommand(argv, true);
+      break;
+    case "lifecycle":
+      await runLifecycleCommand(argv, false);
+      break;
+    case "status": {
       const { flags, positional, options } = parseArgs(argv);
-      const consumerPath = positional[0];
-      if (!consumerPath) {
-        console.error("Usage: wath onboard <consumer-path> [--launch] [--local] ...");
+      const target = positional[0];
+      if (!target) {
+        console.error("Usage: wath status <consumer-path|repo-url|org/repo>");
         process.exit(1);
       }
-
-      const launch = flags.has("--launch");
-      const result = await runOnboarding(
-        {
-          consumerRepoPath: consumerPath,
-          ...(options["standard-id"] ? { standardId: options["standard-id"] } : {}),
-          ...(options["wath-path"] ||
-          options["integrations-path"] ||
-          options["requirements-path"]
-            ? {
-                wathPath:
-                  options["wath-path"] ??
-                  options["integrations-path"] ??
-                  options["requirements-path"],
-              }
-            : {}),
-        },
-        {
-          launch,
-          dryRun: flags.has("--dry-run") || !launch,
-          local: flags.has("--local"),
-          materialize: flags.has("--materialize") || launch,
-          forceMaterialize: flags.has("--force-materialize"),
-          repoUrl: options["repo-url"],
-        }
+      const status = getLifecycleStatus(
+        target,
+        options["wath-path"] ?? options["integrations-path"]
       );
-
-      if (launch) {
-        console.error("\n[wath] onboarding complete");
-        console.log(JSON.stringify(result.agent ?? { status: "no agent result" }, null, 2));
-      } else {
-        console.log(JSON.stringify(result, null, 2));
+      console.log(JSON.stringify(status, null, 2));
+      break;
+    }
+    case "record-merge": {
+      const { options } = parseArgs(argv);
+      const appId = options.app;
+      const type = options.type as "manifest" | "integration" | undefined;
+      if (!appId || !type) {
+        console.error("Usage: wath record-merge --app org/repo --type manifest|integration [--pr URL] [--standard ID]");
+        process.exit(1);
       }
+      const state = recordMerge({
+        appId,
+        type,
+        ...(options.pr ? { prUrl: options.pr } : {}),
+        ...(options.standard ? { standardId: options.standard } : {}),
+      });
+      console.log(JSON.stringify(state, null, 2));
+      break;
+    }
+    case "audit": {
+      const { flags } = parseArgs(argv);
+      const report = audit({ apply: flags.has("--apply") });
+      console.log(JSON.stringify(report, null, 2));
       break;
     }
     case "verify": {

@@ -1,10 +1,14 @@
 {
   "mcpServers": {
     "wath": {
-      "url": "https://wath.internal/mcp",
-      "headers": {
-        "Authorization": "Bearer ${WATH_TOKEN}"
+      "command": "node",
+      "args": ["${WATH_ROOT}/packages/mcp-server/dist/index.js"],
+      "env": {
+        "WATH_ROOT": "${WATH_ROOT}"
       }
+    },
+    "hashicorp-docs": {
+      "url": "https://docs.hashicorp.com/mcp"
     }
   }
 }

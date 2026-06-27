@@ -31,6 +31,8 @@ export {
 } from "./requirements/parser.js";
 export type { WathSpec, WathIntegrationsSpec, RequirementsSlices } from "./requirements/parser.js";
 
+export { writeWathFeedback, writeManifestFeedback } from "./requirements/writer.js";
+
 export { composeOnboardingContext, runOnboarding } from "./onboarding/pipeline.js";
 export type { OnboardingContext, OnboardingOptions, OnboardingResult } from "./onboarding/pipeline.js";
 export { buildOnboardingPrompt } from "./onboarding/prompt.js";
@@ -50,3 +52,27 @@ export { loadConfig } from "./config/env.js";
 export { launchOnboardingAgent } from "./agent/client.js";
 export { runConformanceGate } from "./verify/runner.js";
 export type { StandardOnboarding } from "./types.js";
+
+export {
+  runLifecycle,
+  getLifecycleStatus,
+  recordMerge,
+  audit,
+  resolveApplicationId,
+  loadApplicationState,
+} from "./lifecycle/orchestrator.js";
+export type {
+  OnboardingPhase,
+  ApplicationState,
+  LifecycleOptions,
+  LifecycleResult,
+  AuditReport,
+  MergeRecordType,
+} from "./lifecycle/types.js";
+export type { RecordMergeInput } from "./lifecycle/merge.js";
+export {
+  buildManifestEnrichmentPrompt,
+  buildIntegratePrompt,
+  buildValidatePrompt,
+} from "./lifecycle/prompts.js";
+export { isManifestComplete } from "./lifecycle/manifest.js";

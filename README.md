@@ -46,6 +46,7 @@ examples/           Runnable demos — see `examples/consumer-demo/README.md`
 ## Documentation
 
 - [Contributing](./CONTRIBUTING.md) — how to add standards and submit PRs to **Wath**
+- [Onboarding lifecycle](./docs/onboarding/lifecycle.md) — multi-phase manifest → integrate → validate flow
 - [Consumer templates](./templates/consumer/README.md) — `wath.json.example`, PR template, CI workflow
 - [Extension seams](./docs/extensions/README.md) — cold-extension prep (add standard, change runtime, fleet)
 - [Demo rehearsal](./docs/demo/README.md) — run-of-show, checklist, latency hedge

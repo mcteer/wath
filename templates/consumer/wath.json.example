@@ -7,7 +7,7 @@
       "Describe your app under stack — runtime (kubernetes | nomad | vm) and at least one entry in stack.applications (name → plain-language purpose).",
       "List platform integrations under services — use a standard ID as the key, or a shorthand alias (see available_standards). Start minimal (e.g. \"services\": [\"vault-dynamic-secrets\"]) and add per-service config as Wath or your SME requests it.",
       "Leave feedback as {} on first submit; Wath writes validation results there after runs.",
-      "Run: wath onboard . (from your repo root, or point Wath at your repo URL)."
+      "In Cursor Desktop: configure Wath MCP and ask the agent to run wath.onboard (or run: wath lifecycle . from the Wath repo)."
     ],
     "available_standards": [
       {
