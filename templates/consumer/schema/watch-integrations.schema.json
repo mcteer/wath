@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wath.dev/schema/watch-integrations.schema.json",
+  "title": "WATCH_INTEGRATIONS",
+  "description": "Living integration spec for a Wath-managed application repo.",
+  "type": "object",
+  "required": ["repo", "stack", "services"],
+  "additionalProperties": false,
+  "properties": {
+    "repo": {
+      "type": "string",
+      "format": "uri",
+      "description": "Git repository URL Wath opens PRs against"
+    },
+    "contact": {
+      "type": "object",
+      "properties": {
+        "team": { "type": "string" },
+        "email": { "type": "string", "format": "email" }
+      },
+      "additionalProperties": false
+    },
+    "stack": {
+      "type": "object",
+      "required": ["runtime", "applications"],
+      "additionalProperties": false,
+      "properties": {
+        "runtime": {
+          "enum": ["kubernetes", "nomad", "vm"]
+        },
+        "language": { "type": "string" },
+        "environments": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "applications": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "description": "Plain-language purpose of this application component"
+          }
+        }
+      }
+    },
+    "services": {
+      "description": "Platform services to integrate — keys are standard IDs (e.g. vault-dynamic-secrets)",
+      "oneOf": [
+        {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "description": "Per-service integration parameters"
+          }
+        }
+      ]
+    },
+    "feedback": {
+      "type": "object",
+      "description": "Written by Wath after validation runs — leave {} on submit",
+      "additionalProperties": true
+    }
+  }
+}

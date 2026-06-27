@@ -5,7 +5,7 @@ import { buildConsumerMcpJson } from "../config/mcp.js";
 import type { WathConfig } from "../config/env.js";
 import { generateEnvironmentConfig } from "../environment/generator.js";
 import type { OnboardingContext } from "./pipeline.js";
-import { parseRequirements } from "../requirements/parser.js";
+import { parseIntegrationsSpec } from "../requirements/parser.js";
 import { prTemplateRepoPath } from "./artifacts.js";
 
 export interface MaterializeResult {
@@ -84,11 +84,8 @@ export function materializeConsumerConfig(
     copyIfNeeded(prTemplateSrc, prTemplateDest);
   }
 
-  const requirements = parseRequirements(context.requirementsPath);
-  const environmentJson = generateEnvironmentConfig(
-    requirements,
-    context.standard
-  );
+  const spec = parseIntegrationsSpec(context.integrationsPath);
+  const environmentJson = generateEnvironmentConfig(spec, context.standard);
   const envPath = join(cursorDir, "environment.json");
   if (!existsSync(envPath) || options.force) {
     writeFileSync(envPath, JSON.stringify(environmentJson, null, 2) + "\n");
@@ -114,7 +111,7 @@ export function materializeConsumerConfig(
   return { consumerRoot, filesWritten };
 }
 
-/** Extract repository URL from requirements or config. */
+/** Extract repository URL from WATCH_INTEGRATIONS.json or config. */
 export function resolveConsumerRepoUrl(
   context: OnboardingContext,
   config: WathConfig
@@ -122,12 +119,11 @@ export function resolveConsumerRepoUrl(
   if (config.consumerRepoUrl) {
     return config.consumerRepoUrl;
   }
-  const requirements = parseRequirements(context.requirementsPath);
-  const fromDoc = requirements.environment["Repository"]?.replace(/[`<>]/g, "").trim();
-  if (fromDoc && fromDoc.startsWith("http")) {
-    return fromDoc;
+  const spec = parseIntegrationsSpec(context.integrationsPath);
+  if (spec.repo.startsWith("http")) {
+    return spec.repo;
   }
   throw new Error(
-    "Repository URL required for cloud onboarding. Set WATH_CONSUMER_REPO_URL or fill Repository in INTEGRATION_REQUIREMENTS.md"
+    "Repository URL required for cloud onboarding. Set WATH_CONSUMER_REPO_URL or fill repo in WATCH_INTEGRATIONS.json"
   );
 }

@@ -56,6 +56,9 @@ export interface ResolvedStandard {
 export interface OnboardingIntent {
   standardId?: string;
   consumerRepoPath: string;
+  /** Override path to WATCH_INTEGRATIONS.json */
+  integrationsPath?: string;
+  /** @deprecated Use integrationsPath */
   requirementsPath?: string;
 }
 

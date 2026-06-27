@@ -2,7 +2,9 @@
 
 **Onboarding & conformance engine** for platform service integrations.
 
-A developer describes their app in business terms; Wath prescribes a compliant integration with a platform service, **verifies** it deterministically, and opens a **pull request** for humans to review and merge.
+A developer describes their app in business terms via **`WATCH_INTEGRATIONS.json`**; Wath prescribes compliant integrations with platform services, **verifies** them deterministically, and opens a **pull request** for humans to review and merge.
+
+Re-submit the same spec whenever the stack or services change — first onboarding or remediation months later.
 
 The reference implementation onboards applications to **HashiCorp Vault dynamic database secrets** (tier-4). The architecture is designed to grow into an open **service integration marketplace** — each new platform service is a pluggable standard in `standards/`.
 

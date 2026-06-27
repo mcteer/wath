@@ -1,0 +1,33 @@
+{
+  "repo": "https://github.com/mcteer/wath",
+  "contact": {
+    "team": "payments",
+    "email": "payments@example.com"
+  },
+  "stack": {
+    "runtime": "kubernetes",
+    "language": "Python 3.12 / FastAPI",
+    "environments": ["dev", "prod"],
+    "applications": {
+      "orders-api": "CRUD API for orders — read and write the orders database in dev and prod"
+    }
+  },
+  "services": {
+    "vault-dynamic-secrets": {
+      "datastore": "postgres",
+      "access": "read+write to the orders schema",
+      "environments": ["dev", "prod"],
+      "current_credential_pattern": "DATABASE_URL static DSN in k8s/deployment.yaml and .env.example",
+      "kubernetes": {
+        "namespaces": ["payments-dev", "payments-prod"],
+        "service_accounts": ["orders-api"],
+        "secret_delivery": "vso"
+      },
+      "constraints": {
+        "caches_connection_at_boot": false,
+        "connection_pooler": null
+      }
+    }
+  },
+  "feedback": {}
+}

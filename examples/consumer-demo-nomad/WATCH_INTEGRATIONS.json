@@ -1,0 +1,21 @@
+{
+  "repo": "https://github.com/org/orders-api",
+  "stack": {
+    "runtime": "nomad",
+    "language": "Python 3.12 / FastAPI",
+    "environments": ["dev"],
+    "applications": {
+      "orders-api": "Order CRUD API — dynamic PostgreSQL credentials via Vault"
+    }
+  },
+  "services": {
+    "vault-dynamic-secrets": {
+      "datastore": "postgres",
+      "delivery": "vault-agent-sidecar",
+      "constraints": {
+        "caches_connection_at_boot": false
+      }
+    }
+  },
+  "feedback": {}
+}

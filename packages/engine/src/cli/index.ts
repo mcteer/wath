@@ -52,7 +52,8 @@ Onboard options:
   --force-materialize   Overwrite existing .cursor files
   --repo-url <url>      GitHub repo URL for cloud agent
   --standard-id <id>    Standard ID (optional; inferred from runtime)
-  --requirements-path <path>  Alternate INTEGRATION_REQUIREMENTS.md path
+  --integrations-path <path>  Alternate WATCH_INTEGRATIONS.json path
+  --requirements-path <path>  Alias for --integrations-path (deprecated)
 
 Environment:
   CURSOR_API_KEY              Cursor API key (required for --launch)
@@ -99,8 +100,11 @@ async function main(): Promise<void> {
         {
           consumerRepoPath: consumerPath,
           ...(options["standard-id"] ? { standardId: options["standard-id"] } : {}),
-          ...(options["requirements-path"]
-            ? { requirementsPath: options["requirements-path"] }
+          ...(options["integrations-path"] || options["requirements-path"]
+            ? {
+                integrationsPath:
+                  options["integrations-path"] ?? options["requirements-path"],
+              }
             : {}),
         },
         {

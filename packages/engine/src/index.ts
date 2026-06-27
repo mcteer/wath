@@ -18,9 +18,16 @@ export {
 
 export {
   deriveRuntime,
+  deriveAuthMethod,
+  listRequestedStandardIds,
+  normalizeServices,
+  parseIntegrationsSpec,
   parseRequirements,
+  resolveIntegrationsPath,
   resolveRequirementsPath,
+  SERVICE_ALIASES,
 } from "./requirements/parser.js";
+export type { WathIntegrationsSpec, RequirementsSlices } from "./requirements/parser.js";
 
 export { composeOnboardingContext, runOnboarding } from "./onboarding/pipeline.js";
 export type { OnboardingContext, OnboardingOptions, OnboardingResult } from "./onboarding/pipeline.js";
@@ -40,5 +47,4 @@ export { materializeConsumerConfig } from "./onboarding/materialize.js";
 export { loadConfig } from "./config/env.js";
 export { launchOnboardingAgent } from "./agent/client.js";
 export { runConformanceGate } from "./verify/runner.js";
-export { deriveAuthMethod } from "./requirements/parser.js";
 export type { StandardOnboarding } from "./types.js";

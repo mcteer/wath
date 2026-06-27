@@ -1,8 +1,8 @@
 ---
 description: >
   The step-by-step operating procedure for a Wath cloud agent executing an onboarding run.
-  Use this whenever onboarding an application to a platform service via Wath, processing an
-  INTEGRATION_REQUIREMENTS.md, or executing any stage of the Wath process flow (detect, compose,
+  Use this whenever onboarding an application to a platform service via Wath, processing
+  WATCH_INTEGRATIONS.json, or executing any stage of the Wath process flow (detect, compose,
   parameterize, render, verify, open PR). Standard-specific rules live in the governing SKILL
   and the glob-scoped rule under .cursor/rules/standards/.
 globs:
@@ -14,59 +14,49 @@ alwaysApply: false
 Execute the onboarding as ordered stages. **Do not skip ahead.** Each stage has a definition of
 done (DoD); if you cannot meet it, stop and report rather than proceeding.
 
+This flow applies to **first onboarding and every re-run** — the user may update
+`WATCH_INTEGRATIONS.json` (new runtime, new services, validation feedback) and submit again;
+integrate against the **current** spec and repo state.
+
 The **governing standard** is named in the onboarding prompt (SKILL.md under `standards/`).
 All artifact paths, rules, and anti-patterns come from that standard — not from this file.
 
 ## Stage 1 — Detect
-Read the repo and `INTEGRATION_REQUIREMENTS.md`. Determine: runtime (kubernetes/nomad/vm), stack,
-target environments, identity (namespaces / service accounts / claims), and any anti-patterns
-the standard flags (e.g. static credentials, missing egress rules).
+Read the repo and `WATCH_INTEGRATIONS.json`. From `stack` determine runtime, applications, and
+environments. From `services` determine which platform integrations are requested. Identify
+anti-patterns the standard flags (e.g. static credentials).
 
-Derive the **auth method from runtime** per the standard's auth table — do not hardcode kubernetes
-when requirements say nomad or vm.
+Derive the **auth method from `stack.runtime`** per the standard's auth table.
 
-**DoD:** runtime and intent unambiguous; anti-patterns identified. Missing/contradictory required
-fields → ask the submitter; do not assume.
+**DoD:** runtime and service intent unambiguous; anti-patterns identified. Missing fields → ask
+the submitter; do not assume.
 
 ## Stage 2 — Compose / select standard
-Load the governing standard SKILL. Honor the what-vs-admin boundary (consumer vs platform admin).
-State the upgrade rationale explicitly (e.g. tier-1→tier-4, or baseline→compliant).
+Load the governing standard SKILL for the service entry under `services`. Honor the what-vs-admin
+boundary. State the upgrade rationale explicitly.
 
-**DoD:** you can name every conformance rule you must satisfy, the auth method you'll use, and
-the target compliance posture.
+**DoD:** you can name every conformance rule you must satisfy and the target compliance posture.
 
 ## Stage 3 — Parameterize (typed params first)
-Emit `integration.params.json` conforming to the standard's schema. This is the source of truth
-for TTLs, capabilities, identity binding, and delivery **before** any rendered config.
+Emit `integration.params.json` conforming to the standard's schema before any rendered config.
 
-**DoD:** params validate against the schema. If a value would violate a bound, fix intent — do
-not widen the bound.
+**DoD:** params validate against the schema. Fix intent — do not widen bounds.
 
 ## Stage 4 — Render artifacts
-From the params, generate every artifact listed in the standard's artifact layout (SKILL §2) and
-the onboarding prompt checklist. Render from params — do not free-write policy/config.
+From the params, generate every artifact in the standard's layout and the onboarding checklist.
 
-**DoD:** all artifacts present; admin prerequisites captured as a PR checklist, not executed.
+**DoD:** all artifacts present; admin prerequisites in the PR checklist, not executed.
 
 ## Stage 5 — Verify in sandbox
-Run the standard's conformance gate (`conformance/verify.sh`). If behavioral verification is
-available for this standard, prove the identity → authorization → secret-delivery flow in the
-sandbox.
+Run the standard's conformance gate (`conformance/verify.sh`).
 
-**DoD:** the gate passes. **A failing gate is a hard stop** — fix artifacts and re-verify; never
-weaken a check or the standard to make it pass.
+**DoD:** gate passes. Hard stop on failure — fix and re-verify; never weaken checks.
 
 ## Stage 6 — Open PR
-Open one PR (`autoCreatePR`) against the application repository. The PR description **MUST**
-follow `.github/PULL_REQUEST_TEMPLATE/wath-onboarding.md` (or the standard's configured template)
-— complete every section: rationale, artifact checkboxes, verification evidence, admin
-prerequisites, SME assumptions.
+Open one PR (`autoCreatePR`) to the `repo` in WATCH_INTEGRATIONS.json. PR description MUST follow
+the onboarding PR template — complete every section.
 
-Include the PR template file in the branch if not already present (Wath materializes it under
-`.github/PULL_REQUEST_TEMPLATE/`).
-
-**DoD:** PR is reviewable against evidence, not vibes. Then stop — review and merge are human.
+**DoD:** PR is reviewable against evidence. Then stop — merge is human.
 
 ---
-**If at any stage the standard is silent or the case is novel/ambiguous, halt and escalate to a
-human SME.** Forward progress is never worth inventing an unratified pattern.
+**If the standard is silent or the case is novel, halt and escalate to a human SME.**
