@@ -1,0 +1,12 @@
+# Tier-1 application config — static credential pattern (replaced by Wath onboarding).
+#
+# The app reads DATABASE_URL from the environment at runtime. Locally that comes from
+# .env; in Kubernetes it is set directly on the Deployment manifest.
+
+service:
+  name: orders-api
+
+database:
+  driver: postgres
+  # Static DSN — intentionally bad for demo purposes (VDS-001 violation)
+  url_env: DATABASE_URL

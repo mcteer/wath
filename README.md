@@ -30,7 +30,7 @@ node packages/engine/dist/cli/index.js verify vault-dynamic-secrets ./examples/c
 standards/          SME standards registry (marketplace catalog)
 packages/engine/    SDK orchestrator — selects standards, runs verification
 templates/consumer/ Artifacts teams install in their application repos
-examples/           Runnable demos (tier-1 consumer app)
+examples/           Runnable demos — see `examples/consumer-demo/README.md`
 ```
 
 ## Documentation

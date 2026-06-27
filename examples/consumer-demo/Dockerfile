@@ -1,12 +1,18 @@
-# Tier-1 "before" consumer demo — static DB credentials (to be replaced by Wath onboarding).
+# Tier-1 "before" consumer demo — static DB credentials (replaced by Wath onboarding).
 
 FROM python:3.12-slim
 
 WORKDIR /app
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+COPY config/ ./config/
 COPY src/ ./src/
 
-ENV DATABASE_URL=postgres://demo:demo@localhost:5432/demo
+ENV DATABASE_URL=postgres://orders:orders@postgres:5432/orders
+ENV PORT=8000
 
-CMD ["python", "-m", "src.main"]
+EXPOSE 8000
+
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
