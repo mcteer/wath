@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import type { OnboardingContext } from "../onboarding/pipeline.js";
-import { deriveAuthMethod, parseRequirements } from "../requirements/parser.js";
+import { deriveAuthMethod, parseWathSpec } from "../requirements/parser.js";
 import {
   artifactChecklistMarkdown,
   goldenReferenceLines,
@@ -12,7 +12,7 @@ import { prSubmissionInstructions } from "./pr-template.js";
 
 /** Build the cloud agent onboarding prompt from composed context. */
 export function buildOnboardingPrompt(context: OnboardingContext): string {
-  const requirements = parseRequirements(context.requirementsPath);
+  const spec = parseWathSpec(context.wathPath);
   const standard = context.standard;
   const skillRel = standardSkillRepoPath(standard);
   const verifyScript = standardVerifyRepoPath(standard);
@@ -29,25 +29,33 @@ Load the governing standard at \`${skillRel}\`.
 ## Detected context
 
 - **Runtime:** ${context.runtime}
-- **Auth method (from requirements):** ${authMethod}
-- **Standard:** ${standard.entry.id} v${standard.entry.version} (rules: ${ruleList})
-- **Requirements:** ${context.requirementsPath}
+- **Auth method (from spec):** ${authMethod}
+- **Standard (this run):** ${standard.entry.id} v${standard.entry.version} (rules: ${ruleList})
+- **All requested services:** ${context.requestedStandardIds.join(", ") || "(none)"}
+- **Spec file:** ${context.wathPath}
 - **Consumer path:** ${context.consumerRepoPath}
 - **Consumer root:** ${context.consumerRoot}
+- **Target repo:** ${spec.repo}
 
-## Requirements (summary)
+## wath.json (full spec)
 
-**Environment:**
-${JSON.stringify(requirements.environment, null, 2)}
+\`\`\`json
+${JSON.stringify(
+  {
+    repo: spec.repo,
+    contact: spec.contact,
+    stack: spec.stack,
+    services: spec.services,
+    feedback: spec.feedback,
+  },
+  null,
+  2
+)}
+\`\`\`
 
-**Intent:**
-${JSON.stringify(requirements.intent, null, 2)}
+Implement integration artifacts for **${standard.entry.id}** using the matching entry under \`services\`.
+Additional services in the spec may be onboarded in follow-up runs.
 
-${
-  requirements.constraints.length
-    ? `**Constraints:**\n${requirements.constraints.map((c) => `- ${c}`).join("\n")}\n`
-    : ""
-}
 ## Required artifacts (all must appear in the PR)
 
 ${artifactChecklistMarkdown(standard)}
@@ -58,7 +66,7 @@ ${goldenReferenceLines(standard)}
 
 ## Your mission
 
-1. **Detect** — read the repo and requirements; identify anti-patterns the standard's SKILL prescribes replacing.
+1. **Detect** — read the repo and wath.json; identify anti-patterns the standard flags.
 2. **Parameterize** — emit \`integration.params.json\` (schema-valid) before any rendered config.
 3. **Render** all artifacts from params; match paths in the standard's artifact layout (SKILL §2).
 4. **Verify** — hard stop on failure:
@@ -70,7 +78,7 @@ ${goldenReferenceLines(standard)}
      bash ${verifyScript}
    \`\`\`
 5. **Attach evidence** — reference \`.wath/verify-summary.json\` and behavioral output in the PR.
-6. **Open one PR** using the onboarding PR template (Stage 6).
+6. **Open one PR** to \`${spec.repo}\` using the onboarding PR template (Stage 6).
 
 ${prSubmissionInstructions(context.repoRoot, standard)}
 

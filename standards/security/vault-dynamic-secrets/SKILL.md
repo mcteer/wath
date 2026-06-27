@@ -102,7 +102,7 @@ Naming rules derived from params:
 ## 4. Runtime → auth method (prescription)
 
 The auth method is **derived from the workload runtime**, not chosen freely. Detect the
-runtime from the repo / `INTEGRATION_REQUIREMENTS.md` and apply:
+runtime from the repo / `wath.json` (`stack.runtime`) and apply:
 
 | Runtime | Auth method (`auth_method`) | Identity binding |
 |---|---|---|

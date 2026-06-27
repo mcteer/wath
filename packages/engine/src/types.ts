@@ -56,6 +56,11 @@ export interface ResolvedStandard {
 export interface OnboardingIntent {
   standardId?: string;
   consumerRepoPath: string;
+  /** Override path to wath.json */
+  wathPath?: string;
+  /** @deprecated Use wathPath */
+  integrationsPath?: string;
+  /** @deprecated Use wathPath */
   requirementsPath?: string;
 }
 

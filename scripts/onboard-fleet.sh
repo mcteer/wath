@@ -19,7 +19,7 @@ while [[ $# -gt 0 ]]; do
       WATH_ARGS+=("$1")
       shift
       ;;
-    --standard-id|--repo-url|--requirements-path)
+    --standard-id|--repo-url|--wath-path|--integrations-path|--requirements-path)
       WATH_ARGS+=("$1" "${2:?missing value for $1}")
       shift 2
       ;;

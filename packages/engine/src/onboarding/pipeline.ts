@@ -1,8 +1,9 @@
 import type { OnboardingIntent, ResolvedStandard } from "../types.js";
 import {
   deriveRuntime,
-  parseRequirements,
-  resolveRequirementsPath,
+  listRequestedStandardIds,
+  parseWathSpec,
+  resolveWathPath,
 } from "../requirements/parser.js";
 import {
   findStandardsForRuntime,
@@ -21,10 +22,13 @@ import {
 export interface OnboardingContext {
   repoRoot: string;
   standard: ResolvedStandard;
-  requirementsPath: string;
+  wathPath: string;
+  requestedStandardIds: string[];
   runtime: string;
   consumerRepoPath: string;
   consumerRoot: string;
+  /** @deprecated Use wathPath */
+  integrationsPath: string;
 }
 
 export interface OnboardingOptions {
@@ -51,37 +55,62 @@ export interface OnboardingResult {
 }
 
 /**
- * Compose onboarding context: select the governing standard from the registry
- * based on explicit intent or inferred runtime from requirements.
+ * Pick the governing standard: explicit --standard-id, first listed service in the spec,
+ * or first registry match for runtime.
+ */
+function resolveStandardForSpec(
+  repoRoot: string,
+  specStandardIds: string[],
+  runtime: string,
+  explicitId?: string
+): ResolvedStandard {
+  if (explicitId) {
+    return resolveStandard(repoRoot, explicitId);
+  }
+  for (const id of specStandardIds) {
+    try {
+      return resolveStandard(repoRoot, id);
+    } catch {
+      continue;
+    }
+  }
+  const candidates = findStandardsForRuntime(repoRoot, runtime);
+  if (candidates.length === 0) {
+    throw new Error(
+      `No standards registered for runtime "${runtime}". Add one to standards/registry.yaml.`
+    );
+  }
+  return resolveStandard(repoRoot, candidates[0].id);
+}
+
+/**
+ * Compose onboarding context from wath.json and the standards registry.
  */
 export function composeOnboardingContext(
   intent: OnboardingIntent
 ): OnboardingContext {
   const repoRoot = resolveRepoRoot();
-  const requirementsPath = resolveRequirementsPath(intent);
-  const requirements = parseRequirements(requirementsPath);
-  const runtime = deriveRuntime(requirements);
+  const wathPath = resolveWathPath(intent);
+  const spec = parseWathSpec(wathPath);
+  const runtime = deriveRuntime(spec);
+  const requestedStandardIds = listRequestedStandardIds(spec);
   const consumerRepoPath = intent.consumerRepoPath;
 
-  let standard: ResolvedStandard;
-  if (intent.standardId) {
-    standard = resolveStandard(repoRoot, intent.standardId);
-  } else {
-    const candidates = findStandardsForRuntime(repoRoot, runtime);
-    if (candidates.length === 0) {
-      throw new Error(
-        `No standards registered for runtime "${runtime}". Add one to standards/registry.yaml.`
-      );
-    }
-    standard = resolveStandard(repoRoot, candidates[0].id);
-  }
+  const standard = resolveStandardForSpec(
+    repoRoot,
+    requestedStandardIds,
+    runtime,
+    intent.standardId
+  );
 
   const consumerRoot = resolveConsumerRoot(repoRoot, consumerRepoPath);
 
   return {
     repoRoot,
     standard,
-    requirementsPath,
+    wathPath,
+    integrationsPath: wathPath,
+    requestedStandardIds,
     runtime,
     consumerRepoPath,
     consumerRoot,

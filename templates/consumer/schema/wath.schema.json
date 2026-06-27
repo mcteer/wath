@@ -1,0 +1,105 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wath.dev/schema/wath.schema.json",
+  "title": "wath",
+  "description": "Living integration manifest for a Wath-managed application repo.",
+  "type": "object",
+  "required": ["repo", "stack", "services"],
+  "additionalProperties": false,
+  "properties": {
+    "_instructions": {
+      "description": "Human-readable guide (wath.json.example only). Wath ignores keys prefixed with _.",
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "properties": {
+            "overview": { "type": "string" },
+            "steps": { "type": "array", "items": { "type": "string" } },
+            "available_standards": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "string" },
+                  "aliases": { "type": "array", "items": { "type": "string" } },
+                  "platform_service": { "type": "string" },
+                  "summary": { "type": "string" },
+                  "runtimes": { "type": "array", "items": { "type": "string" } }
+                }
+              }
+            },
+            "discover_more": { "type": "string" },
+            "note": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version for forward-compatible evolution"
+    },
+    "repo": {
+      "type": "string",
+      "format": "uri",
+      "description": "Git repository URL Wath opens PRs against"
+    },
+    "contact": {
+      "type": "object",
+      "properties": {
+        "team": { "type": "string" },
+        "email": { "type": "string", "format": "email" }
+      },
+      "additionalProperties": false
+    },
+    "stack": {
+      "type": "object",
+      "required": ["runtime", "applications"],
+      "additionalProperties": false,
+      "properties": {
+        "runtime": {
+          "enum": ["kubernetes", "nomad", "vm"]
+        },
+        "language": { "type": "string" },
+        "environments": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "applications": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "description": "Plain-language purpose of this application component"
+          }
+        }
+      }
+    },
+    "services": {
+      "description": "Platform services to integrate — keys are standard IDs (e.g. vault-dynamic-secrets)",
+      "oneOf": [
+        {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "description": "Per-service integration parameters"
+          }
+        }
+      ]
+    },
+    "feedback": {
+      "type": "object",
+      "description": "Written by Wath after validation runs — leave {} on submit",
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,14 +1,14 @@
 import { join } from "node:path";
 
-import type { RequirementsSlices } from "../requirements/parser.js";
+import type { WathSpec } from "../requirements/parser.js";
 import type { ResolvedStandard } from "../types.js";
 import { resolveOnboardingConfig } from "../onboarding/artifacts.js";
 
 /**
- * Generate .cursor/environment.json from requirements + standard onboarding sandbox config.
+ * Generate .cursor/environment.json from wath.json stack + standard sandbox config.
  */
 export function generateEnvironmentConfig(
-  _requirements: RequirementsSlices,
+  _spec: WathSpec,
   standard: ResolvedStandard
 ): Record<string, unknown> {
   const onboarding = resolveOnboardingConfig(standard);

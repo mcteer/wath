@@ -57,7 +57,7 @@ kubectl apply -f k8s/service.yaml
 
 ## Onboarding with Wath
 
-Fill out `INTEGRATION_REQUIREMENTS.md` and run Wath onboarding from the repo root:
+Fill out `wath.json` and run Wath onboarding from the repo root:
 
 ```bash
 node packages/engine/dist/cli/index.js onboard ./examples/consumer-demo

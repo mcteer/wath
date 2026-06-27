@@ -11,4 +11,4 @@ For a full onboarding run, either:
 ./scripts/onboard-fleet.sh examples/consumer-demo examples/consumer-demo-payments
 ```
 
-Requirements below are sufficient for dry-run prompt composition.
+Requirements below are sufficient for fleet dry-runs. See `wath.json`.

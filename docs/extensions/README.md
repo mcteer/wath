@@ -1,14 +1,14 @@
 # Wath extension seams
 
-Phase 6 prepares **cold extension** — changes you can make live when an interviewer throws an unplanned prompt. The engine stays generic; standards and requirements drive behavior.
+Phase 6 prepares **cold extension** — changes you can make live when an interviewer throws an unplanned prompt. The engine stays generic; standards and the integration spec drive behavior.
 
 ## The four seams
 
 | Seam | What to change | Example cold prompt |
 |------|----------------|---------------------|
 | **Standard (SKILL)** | Add or edit `standards/<bu>/<id>/` + one registry line | "Also require mTLS via our PKI standard" |
-| **Requirements doc** | Edit `INTEGRATION_REQUIREMENTS.md` environment/intent/constraints | "This runs on Nomad, not Kubernetes" |
-| **Feedback loop** | Swap or extend requirements with a Tier-2 finding | "PgBouncer transaction pooling breaks session auth" |
+| **Integration spec** | Edit `wath.json` (`stack`, `services`) | "This runs on Nomad, not Kubernetes" |
+| **Feedback loop** | Re-submit the same spec after validation findings (`feedback`) | "PgBouncer transaction pooling breaks session auth" |
 | **Fleet** | Run onboarding across multiple consumer paths | "Onboard our payments API the same way" |
 
 ## 1. Add a standard (insurance: egress-policy)
@@ -29,19 +29,11 @@ A prepped stub lives at `standards/networking/egress-policy/`. It is **not** in 
       - network-policy
 ```
 
-Then add a glob-scoped rule (already prepped):
+Add a key under `services` in wath.json and re-run onboard.
 
-`templates/consumer/.cursor/rules/standards/egress-policy.mdc`
+## 2. Change runtime / auth method
 
-Re-run onboarding — the engine selects standards by runtime and explicit `--standard-id`.
-
-```bash
-node packages/engine/dist/cli/index.js onboard ./examples/consumer-demo --standard-id egress-policy
-```
-
-## 2. Change runtime / auth method (one-line requirements edit)
-
-Auth method is derived from the **Runtime** field in `INTEGRATION_REQUIREMENTS.md`:
+Auth method is derived from **`stack.runtime`** in wath.json:
 
 | Runtime | Auth method |
 |---------|-------------|
@@ -49,43 +41,32 @@ Auth method is derived from the **Runtime** field in `INTEGRATION_REQUIREMENTS.m
 | `nomad` | jwt (Nomad workload identity) |
 | `vm` | approle / cloud identity |
 
-Example: change `Runtime` from `kubernetes` to `nomad`, re-run onboard. The prompt and agent process pick up the new auth method without engine changes.
+Example: change `"runtime": "nomad"`, re-run onboard.
 
-See `examples/consumer-demo-nomad/INTEGRATION_REQUIREMENTS.md` for a prepped Nomad variant.
+See `examples/consumer-demo-nomad/wath.json` for a prepped Nomad variant.
 
-## 3. Feedback-loop regen (requirements v2)
+## 3. Iterative re-onboarding (same file, re-run)
 
-When Tier-2 CI surfaces a constraint, update requirements and re-run:
+When validation surfaces a gap, update **wath.json in place** and re-run:
 
-1. Copy `templates/consumer/INTEGRATION_REQUIREMENTS.v2.example.md` into the consumer repo (or merge its constraints section).
+1. User edits `stack` / `services`; Wath appends to `feedback`.
 2. Re-run `wath onboard <path> --launch --materialize`.
 
-The agent re-detects, re-parameterizes, and re-verifies against the updated constraints.
+Example: add `"connection_pooler": "pgbouncer-transaction"` under the service's `constraints`.
 
 ## 4. Platform-push fleet
-
-Onboard multiple application repos in one shot:
 
 ```bash
 ./scripts/onboard-fleet.sh examples/consumer-demo examples/consumer-demo-payments
 ```
 
-Each path gets its own dry-run or `--launch` (pass `--launch` through). For cloud runs, set `WATH_CONSUMER_REPO_URL` per repo or fill the Repository field in each requirements doc.
-
 ## Engine vs standard boundaries
 
-Keep **standard-specific** logic in:
-
-- `standards/<bu>/<id>/SKILL.md` — prescribe behavior
-- `standards/<bu>/<id>/standard.yaml` — `onboarding.artifacts`, sandbox scripts, golden refs
-- `standards/<bu>/<id>/conformance/` — verify gate
-- `templates/consumer/.cursor/rules/standards/<id>.mdc` — edit-time agent hints
-
-The engine (`packages/engine/`) loads the registry and `standard.yaml` onboarding metadata — it should not hardcode Vault paths or rule IDs.
+Keep **standard-specific** logic in `standards/<bu>/<id>/` (SKILL, schema, conformance). The engine loads the registry and `standard.yaml` onboarding metadata.
 
 ## Rehearsal checklist
 
-- [ ] Can add a registry entry and re-run onboard without engine code changes
-- [ ] Can change Runtime in requirements and see auth method update in dry-run prompt
-- [ ] Can swap requirements v2 and explain what the agent would re-do
+- [ ] Can add a registry entry and a `services` key, then re-run onboard
+- [ ] Can change `stack.runtime` and see auth method update in dry-run prompt
+- [ ] Can edit service `constraints` and re-run to show the feedback loop
 - [ ] Can run fleet script across two consumer paths
