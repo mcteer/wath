@@ -74,7 +74,9 @@ Steps:
 
 ### Engine / orchestrator changes
 
-Work in `packages/engine/`. Keep standard-specific logic in `standards/`, not in the engine. The engine should load standards via the registry, not hardcode service paths.
+Work in `packages/engine/`. Keep standard-specific logic in `standards/`, not in the engine. The engine should load standards via the registry and `standard.yaml` onboarding metadata — not hardcode service paths.
+
+See [docs/extensions/README.md](./docs/extensions/README.md) for extension seams and prepped insurance deltas.
 
 ### Consumer templates & examples
 

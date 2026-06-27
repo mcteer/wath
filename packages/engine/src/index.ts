@@ -25,9 +25,20 @@ export {
 export { composeOnboardingContext, runOnboarding } from "./onboarding/pipeline.js";
 export type { OnboardingContext, OnboardingOptions, OnboardingResult } from "./onboarding/pipeline.js";
 export { buildOnboardingPrompt } from "./onboarding/prompt.js";
-export { artifactChecklistMarkdown, ONBOARDING_ARTIFACT_PATHS, PR_TEMPLATE_REPO_PATH } from "./onboarding/artifacts.js";
+export {
+  artifactChecklistMarkdown,
+  DEFAULT_PR_TEMPLATE_REPO_PATH,
+  goldenReferenceLines,
+  prTemplateRepoPath,
+  resolveOnboardingConfig,
+  standardSkillRepoPath,
+  standardSchemaRepoPath,
+  standardVerifyRepoPath,
+} from "./onboarding/artifacts.js";
 export { loadOnboardingPrTemplate, prSubmissionInstructions } from "./onboarding/pr-template.js";
 export { materializeConsumerConfig } from "./onboarding/materialize.js";
 export { loadConfig } from "./config/env.js";
 export { launchOnboardingAgent } from "./agent/client.js";
 export { runConformanceGate } from "./verify/runner.js";
+export { deriveAuthMethod } from "./requirements/parser.js";
+export type { StandardOnboarding } from "./types.js";

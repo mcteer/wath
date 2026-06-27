@@ -39,6 +39,10 @@ Or let the engine materialize during launch:
 node packages/engine/dist/cli/index.js onboard ./examples/consumer-demo --materialize
 ```
 
+### Requirements feedback loop
+
+For Tier-2 findings that require re-onboarding, see `INTEGRATION_REQUIREMENTS.v2.example.md`.
+
 ## Relationship to the Wath project repo
 
 The Wath **project** uses its own `CONTRIBUTING.md` PR template for contributions to Wath itself. Application repos use **this** template for service-integration onboarding PRs opened by Wath.

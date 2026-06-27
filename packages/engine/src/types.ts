@@ -1,5 +1,22 @@
 /** Shared types for the Wath engine and standards registry. */
 
+export interface StandardOnboardingSandbox {
+  install: string;
+  start: string;
+}
+
+/** Per-standard onboarding metadata — keeps engine generic across marketplace standards. */
+export interface StandardOnboarding {
+  artifacts: string[];
+  golden_fixture?: string;
+  golden_params?: string;
+  sandbox?: StandardOnboardingSandbox;
+  /** Basename of templates/consumer/.cursor/rules/standards/<name>.mdc */
+  consumer_rule?: string;
+  /** Repo-relative PR template path under templates/consumer/ */
+  pr_template?: string;
+}
+
 export interface StandardMetadata {
   id: string;
   version: number;
@@ -10,6 +27,7 @@ export interface StandardMetadata {
   conformance_entry: string;
   runtimes: string[];
   services: string[];
+  onboarding?: StandardOnboarding;
 }
 
 export interface StandardRegistryEntry {

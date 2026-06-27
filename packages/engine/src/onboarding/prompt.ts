@@ -1,22 +1,23 @@
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
 
 import type { OnboardingContext } from "../onboarding/pipeline.js";
-import { parseRequirements } from "../requirements/parser.js";
-import { artifactChecklistMarkdown } from "./artifacts.js";
+import { deriveAuthMethod, parseRequirements } from "../requirements/parser.js";
+import {
+  artifactChecklistMarkdown,
+  goldenReferenceLines,
+  standardSkillRepoPath,
+  standardVerifyRepoPath,
+} from "./artifacts.js";
 import { prSubmissionInstructions } from "./pr-template.js";
 
 /** Build the cloud agent onboarding prompt from composed context. */
 export function buildOnboardingPrompt(context: OnboardingContext): string {
   const requirements = parseRequirements(context.requirementsPath);
   const standard = context.standard;
-  const skillRel = join("standards", standard.entry.path, "SKILL.md");
-  const verifyScript = join(
-    "standards",
-    standard.entry.path,
-    "conformance",
-    "verify.sh"
-  );
+  const skillRel = standardSkillRepoPath(standard);
+  const verifyScript = standardVerifyRepoPath(standard);
+  const authMethod = deriveAuthMethod(context.runtime);
+  const ruleList = standard.metadata.rules.join(", ");
 
   return `# Wath onboarding run
 
@@ -28,7 +29,8 @@ Load the governing standard at \`${skillRel}\`.
 ## Detected context
 
 - **Runtime:** ${context.runtime}
-- **Standard:** ${standard.entry.id} v${standard.entry.version}
+- **Auth method (from requirements):** ${authMethod}
+- **Standard:** ${standard.entry.id} v${standard.entry.version} (rules: ${ruleList})
 - **Requirements:** ${context.requirementsPath}
 - **Consumer path:** ${context.consumerRepoPath}
 - **Consumer root:** ${context.consumerRoot}
@@ -41,20 +43,24 @@ ${JSON.stringify(requirements.environment, null, 2)}
 **Intent:**
 ${JSON.stringify(requirements.intent, null, 2)}
 
+${
+  requirements.constraints.length
+    ? `**Constraints:**\n${requirements.constraints.map((c) => `- ${c}`).join("\n")}\n`
+    : ""
+}
 ## Required artifacts (all must appear in the PR)
 
-${artifactChecklistMarkdown()}
+${artifactChecklistMarkdown(standard)}
 
-Also include the **application diff** removing static credential patterns.
+Also include the **application diff** removing any anti-patterns the standard flags.
 
-Golden params: \`standards/security/vault-dynamic-secrets/examples/integration.params.orders-api.json\`
-Golden tier-4 layout: \`standards/security/vault-dynamic-secrets/fixtures/tier4-orders-api/\`
+${goldenReferenceLines(standard)}
 
 ## Your mission
 
-1. **Detect** tier-1 static credentials; state tier-1→tier-4 rationale explicitly.
-2. **Parameterize** — emit \`integration.params.json\` (schema-valid) before any HCL.
-3. **Render** all artifacts from params; match paths in the standard's §2 layout.
+1. **Detect** — read the repo and requirements; identify anti-patterns the standard's SKILL prescribes replacing.
+2. **Parameterize** — emit \`integration.params.json\` (schema-valid) before any rendered config.
+3. **Render** all artifacts from params; match paths in the standard's artifact layout (SKILL §2).
 4. **Verify** — hard stop on failure:
    \`\`\`bash
    cd ${context.repoRoot}
@@ -66,7 +72,7 @@ Golden tier-4 layout: \`standards/security/vault-dynamic-secrets/fixtures/tier4-
 5. **Attach evidence** — reference \`.wath/verify-summary.json\` and behavioral output in the PR.
 6. **Open one PR** using the onboarding PR template (Stage 6).
 
-${prSubmissionInstructions(context.repoRoot)}
+${prSubmissionInstructions(context.repoRoot, standard)}
 
 ## Invariants
 

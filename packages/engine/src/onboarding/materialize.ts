@@ -6,6 +6,7 @@ import type { WathConfig } from "../config/env.js";
 import { generateEnvironmentConfig } from "../environment/generator.js";
 import type { OnboardingContext } from "./pipeline.js";
 import { parseRequirements } from "../requirements/parser.js";
+import { prTemplateRepoPath } from "./artifacts.js";
 
 export interface MaterializeResult {
   consumerRoot: string;
@@ -57,26 +58,35 @@ export function materializeConsumerConfig(
     join(templateRoot, ".cursor/rules/wath-agent-process.mdc"),
     join(rulesDir, "wath-agent-process.mdc")
   );
-  copyIfNeeded(
-    join(templateRoot, ".cursor/rules/standards/vault-dynamic-secrets.mdc"),
-    join(standardsRulesDir, "vault-dynamic-secrets.mdc")
-  );
 
-  const prTemplateSrc = join(
+  const ruleName =
+    context.standard.metadata.onboarding?.consumer_rule ??
+    context.standard.entry.id;
+  const standardRuleSrc = join(
     templateRoot,
-    ".github/PULL_REQUEST_TEMPLATE/wath-onboarding.md"
+    `.cursor/rules/standards/${ruleName}.mdc`
   );
-  const prTemplateDest = join(
-    consumerRoot,
-    ".github/PULL_REQUEST_TEMPLATE/wath-onboarding.md"
-  );
-  mkdirSync(join(consumerRoot, ".github/PULL_REQUEST_TEMPLATE"), { recursive: true });
-  copyIfNeeded(prTemplateSrc, prTemplateDest);
+  if (existsSync(standardRuleSrc)) {
+    copyIfNeeded(
+      standardRuleSrc,
+      join(standardsRulesDir, `${ruleName}.mdc`)
+    );
+  }
+
+  const prTemplateRel = prTemplateRepoPath(context.standard);
+  const prTemplateSrc = join(templateRoot, prTemplateRel);
+  const prTemplateDest = join(consumerRoot, prTemplateRel);
+  mkdirSync(join(consumerRoot, ".github/PULL_REQUEST_TEMPLATE"), {
+    recursive: true,
+  });
+  if (existsSync(prTemplateSrc)) {
+    copyIfNeeded(prTemplateSrc, prTemplateDest);
+  }
 
   const requirements = parseRequirements(context.requirementsPath);
   const environmentJson = generateEnvironmentConfig(
     requirements,
-    context.standard.entry.id
+    context.standard
   );
   const envPath = join(cursorDir, "environment.json");
   if (!existsSync(envPath) || options.force) {
@@ -90,7 +100,6 @@ export function materializeConsumerConfig(
     filesWritten.push(mcpPath);
   }
 
-  // Symlink or copy standard SKILL into consumer-visible path for cloud agent
   const skillLink = join(cursorDir, "skills");
   mkdirSync(skillLink, { recursive: true });
   const skillSrc = context.standard.skillPath;

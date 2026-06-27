@@ -1,25 +1,30 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { PR_TEMPLATE_REPO_PATH } from "./artifacts.js";
+import type { ResolvedStandard } from "../types.js";
+import { prTemplateRepoPath } from "./artifacts.js";
 
 /** Load the consumer onboarding PR template from Wath templates. */
-export function loadOnboardingPrTemplate(wathRoot: string): string {
-  const path = join(
-    wathRoot,
-    "templates/consumer",
-    PR_TEMPLATE_REPO_PATH
-  );
+export function loadOnboardingPrTemplate(
+  wathRoot: string,
+  standard: ResolvedStandard
+): string {
+  const repoPath = prTemplateRepoPath(standard);
+  const path = join(wathRoot, "templates/consumer", repoPath);
   return readFileSync(path, "utf8");
 }
 
 /** Instructions for the agent when opening the onboarding PR. */
-export function prSubmissionInstructions(wathRoot: string): string {
-  const template = loadOnboardingPrTemplate(wathRoot);
+export function prSubmissionInstructions(
+  wathRoot: string,
+  standard: ResolvedStandard
+): string {
+  const templatePath = prTemplateRepoPath(standard);
+  const template = loadOnboardingPrTemplate(wathRoot, standard);
   return `## Pull request requirements (mandatory)
 
 When opening the PR (\`autoCreatePR\`), the description MUST follow the structure of
-\`${PR_TEMPLATE_REPO_PATH}\`. Complete every section; do not omit verification evidence
+\`${templatePath}\`. Complete every section; do not omit verification evidence
 or admin prerequisites.
 
 If GitHub pre-fills the template from the branch, edit it in place. Otherwise paste

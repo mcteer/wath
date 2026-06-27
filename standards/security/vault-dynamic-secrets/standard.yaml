@@ -19,3 +19,18 @@ runtimes:
   - vm
 services:
   - hashicorp-vault
+onboarding:
+  artifacts:
+    - integration.params.json
+    - vault/policy.hcl
+    - vault/auth-kubernetes-role.json
+    - k8s/vso-dynamic-secret.yaml
+    - k8s/deployment.yaml
+    - .github/workflows/vault-verify.yml
+  golden_fixture: fixtures/tier4-orders-api
+  golden_params: examples/integration.params.orders-api.json
+  sandbox:
+    install: conformance/install-sandbox-deps.sh
+    start: conformance/start-sandbox.sh
+  consumer_rule: vault-dynamic-secrets
+  pr_template: .github/PULL_REQUEST_TEMPLATE/wath-onboarding.md

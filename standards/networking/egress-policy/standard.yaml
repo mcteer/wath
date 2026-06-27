@@ -1,18 +1,20 @@
-id: {{STANDARD_ID}}
+id: egress-policy
 version: 1
-owner: {{OWNER}}
-rule_prefix: {{RULE_PREFIX}}
+owner: network-engineering
+rule_prefix: EGR
 rules:
-  - {{RULE_PREFIX}}-001
-  - {{RULE_PREFIX}}-002
+  - EGR-001
+  - EGR-002
 schema: schema/integration.params.schema.json
 conformance_entry: conformance/verify.sh
 runtimes:
   - kubernetes
+  - nomad
 services:
-  - TODO
+  - network-policy
 onboarding:
   artifacts:
     - integration.params.json
-  consumer_rule: {{STANDARD_ID}}
+    - k8s/networkpolicy-egress.yaml
+  consumer_rule: egress-policy
   pr_template: .github/PULL_REQUEST_TEMPLATE/wath-onboarding.md
