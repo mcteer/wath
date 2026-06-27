@@ -184,9 +184,7 @@ export async function runLifecycle(
   const context = composeOnboardingContext(intent);
 
   const shouldMaterialize =
-    options.materialize !== false &&
-    (options.launch || options.materialize) &&
-    Boolean(resolvedConsumer.localConsumerPath);
+    options.materialize === true && Boolean(resolvedConsumer.localConsumerPath);
   if (shouldMaterialize && phase !== "await_merge" && phase !== "compliant") {
     result.materialized = materializeConsumerConfig(context, config, {
       force: options.forceMaterialize,

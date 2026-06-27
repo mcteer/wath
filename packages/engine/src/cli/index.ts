@@ -112,7 +112,7 @@ async function runLifecycleCommand(
       launch,
       dryRun: flags.has("--dry-run") || !launch,
       local: flags.has("--local"),
-      materialize: flags.has("--materialize") || launch,
+      materialize: flags.has("--materialize"),
       forceMaterialize: flags.has("--force-materialize"),
       repoUrl: options["repo-url"],
     });
@@ -129,7 +129,7 @@ async function runLifecycleCommand(
     launch,
     dryRun: flags.has("--dry-run") || !launch,
     local: flags.has("--local"),
-    materialize: flags.has("--materialize") || launch,
+    materialize: flags.has("--materialize"),
     forceMaterialize: flags.has("--force-materialize"),
     repoUrl: options["repo-url"],
     ...(options.phase ? { phase: options.phase as OnboardingPhase } : {}),

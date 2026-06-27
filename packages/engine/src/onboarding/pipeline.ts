@@ -140,7 +140,7 @@ export async function runOnboarding(
 
   const result: OnboardingResult = { context, prompt };
 
-  const shouldMaterialize = options.materialize !== false && (options.launch || options.materialize);
+  const shouldMaterialize = options.materialize === true;
   if (shouldMaterialize) {
     result.materialized = materializeConsumerConfig(context, config, {
       force: options.forceMaterialize,

@@ -1,7 +1,6 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import { buildConsumerMcpJson } from "../config/mcp.js";
 import type { WathConfig } from "../config/env.js";
 import { generateEnvironmentConfig } from "../environment/generator.js";
 import type { OnboardingContext } from "./pipeline.js";
@@ -97,14 +96,7 @@ export function materializeConsumerConfig(
     filesWritten.push(envPath);
   }
 
-  const mcpPath = join(cursorDir, "mcp.json");
-  if (!existsSync(mcpPath) || options.force) {
-    writeFileSync(
-      mcpPath,
-      JSON.stringify(buildConsumerMcpJson(config), null, 2) + "\n"
-    );
-    filesWritten.push(mcpPath);
-  }
+  // mcp.json is user-owned — installed once via install-consumer-template.sh; never written here.
 
   // Copy SKILL into consumer-visible path for the cloud agent
   const skillLink = join(cursorDir, "skills");

@@ -34,4 +34,4 @@ When the user asks to run **`wath.onboard`**, **`wath.status`**, or similar Wath
 1. Read `wath.json` at the repo root.
 2. Call the tool with `{ "repo": "<value of the repo field>" }` (add `"launch": true` for live onboard unless dry-run is requested).
 
-Never edit `.cursor/mcp.json` to add repo URLs or extra MCP servers — that file is Wath + auth only.
+**Never read, write, or modify `.cursor/mcp.json`** during onboarding — it is configured once by the developer and must not change when `wath.onboard` runs.
