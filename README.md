@@ -27,61 +27,176 @@ wath.json.example → wath.json → wath lifecycle / MCP wath.onboard
 
 Full details: [Onboarding lifecycle](./docs/onboarding/lifecycle.md).
 
-## Quick start
+## Developer onboarding
+
+Steps for an application team adopting Wath. Wath **opens PRs**; your team **reviews and merges** them.
+
+### 1. Add `wath.json` to your app repo
 
 ```bash
-# Install dependencies
-npm install
+cp /path/to/wath/templates/consumer/wath.json.example wath.json
+# or from the Wath repo:
+./scripts/install-consumer-template.sh /path/to/your-app-repo
+```
 
-# Build engine + MCP server
+Edit the manifest:
+
+| Field | Set to |
+|-------|--------|
+| `repo` | Your app's GitHub URL (where Wath opens PRs) |
+| `stack.runtime` | `kubernetes`, `nomad`, or `vm` |
+| `stack.applications` | App name → plain-language purpose |
+| `services` | Platform integrations — e.g. `"services": ["vault-dynamic-secrets"]` or a per-service config block |
+
+Minimal example:
+
+```json
+{
+  "version": 1,
+  "repo": "https://github.com/org/my-app",
+  "stack": {
+    "runtime": "kubernetes",
+    "applications": {
+      "orders-api": "CRUD API for orders — reads/writes Postgres"
+    }
+  },
+  "services": {
+    "vault-dynamic-secrets": {
+      "datastore": "postgres",
+      "access": "read+write to orders schema"
+    }
+  },
+  "feedback": {}
+}
+```
+
+Commit and push `wath.json`.
+
+See [Consumer templates](./templates/consumer/README.md) and [`wath.schema.json`](templates/consumer/schema/wath.schema.json) for the full schema.
+
+### 2. Connect Wath in Cursor
+
+Open your **app repo** in Cursor and add `.cursor/mcp.json`.
+
+**wath-core on Podman** (recommended when running locally):
+
+```json
+{
+  "mcpServers": {
+    "wath": {
+      "url": "http://localhost:8080/mcp"
+    }
+  }
+}
+```
+
+**Local Wath clone** (stdio MCP):
+
+```json
+{
+  "mcpServers": {
+    "wath": {
+      "command": "node",
+      "args": ["/absolute/path/to/wath/packages/mcp-server/dist/index.js"],
+      "env": { "WATH_ROOT": "/absolute/path/to/wath" }
+    }
+  }
+}
+```
+
+Reload MCP in Cursor. See [Cursor Automation](./docs/onboarding/cursor-automation.md).
+
+### 3. Start onboarding
+
+In Cursor chat:
+
+> **Run wath.onboard for this repository.**
+
+Or via CLI / wath-core API:
+
+```bash
+# Dry-run (phase + prompt, no agent)
+curl -s -X POST http://localhost:8080/api/v1/lifecycle \
+  -H 'content-type: application/json' \
+  -d '{"consumerPath":"examples/consumer-demo"}'
+
+# Live launch (needs CURSOR_API_KEY + repo URL in deploy/.env or shell)
+./scripts/demo-live-launch.sh /path/to/your-app
+```
+
+With `launch: true`, Wath runs cloud agents that analyze your repo and open PRs.
+
+### 4. Review and merge PRs
+
+| PR type | Your action |
+|---------|-------------|
+| **Manifest** | Wath enriched `wath.json` — review, merge, re-run `wath.onboard` |
+| **Integration** | Wath added Vault/K8s artifacts + verify evidence — review, merge |
+
+After each merge, record it so Wath advances the lifecycle:
+
+```bash
+wath record-merge --app org/repo --type manifest --pr https://github.com/org/repo/pull/123
+wath record-merge --app org/repo --type integration --standard vault-dynamic-secrets --pr https://github.com/org/repo/pull/124
+```
+
+Or poll from the Wath repo: `./scripts/poll-merge-prs.sh`
+
+### 5. Check status and re-onboard
+
+```bash
+wath status https://github.com/org/my-app
+# or: curl "http://localhost:8080/api/v1/status?target=org/repo"
+```
+
+In Cursor: MCP tool **`wath.status`**. When all integrations are merged, phase is **`compliant`**.
+
+Update `wath.json` and run **`wath.onboard`** again when the stack changes, services are added, or `wath audit` reports drift.
+
+### Developer vs Wath
+
+| Developer | Wath |
+|-----------|------|
+| Writes and commits `wath.json` | Tracks phase in `state/applications/<org>/<repo>.yaml` |
+| Reviews and **merges PRs** | Opens PRs — **never merges** |
+| Configures Cursor MCP | Runs integrate → validate agents |
+| Records merges (or automation) | Advances lifecycle phase |
+
+## Quick start (Wath operators)
+
+```bash
+npm install
 npm run build
 
-# List registered standards
+# Standards registry
 node packages/engine/dist/cli/index.js list
 
-# Dry-run lifecycle (no agent) — shows phase, state, and prompt
+# Dry-run lifecycle against the demo app
 node packages/engine/dist/cli/index.js lifecycle ./examples/consumer-demo
 
-# Inspect lifecycle state for an app
+# Inspect state / audit
 node packages/engine/dist/cli/index.js status ./examples/consumer-demo
-
-# Compliance audit vs standards registry
 node packages/engine/dist/cli/index.js audit
 
-# Launch cloud agent (requires CURSOR_API_KEY + repo URL)
-# export CURSOR_API_KEY=...
-# export WATH_CONSUMER_REPO_URL=https://github.com/org/app-repo
-# node packages/engine/dist/cli/index.js lifecycle ./examples/consumer-demo --launch --materialize
-
-# Verify the golden tier-4 fixture (hand-written reference integration)
+# Golden tier-4 reference integration
 ./scripts/verify-golden-fixture.sh --static-only
+
+# Demo rehearsal (prefers wath-core on Podman when up)
+npm run demo:prewarm
+npm run demo:run
 ```
 
-### App repo setup
+### Deploy with Podman (wath-core)
+
+Run the orchestrator as a local HTTP service — REST at `/api/v1/*`, MCP at `/mcp`:
 
 ```bash
-cp templates/consumer/wath.json.example wath.json
-# edit repo, stack, services
-# optional: ./scripts/install-consumer-template.sh /path/to/app-repo
-```
-
-### Cursor Desktop (MCP)
-
-Build the MCP server (`npm run build`), configure [templates/consumer/.cursor/mcp.json](templates/consumer/.cursor/mcp.json) with your `WATH_ROOT`, then invoke **`wath.onboard`** from Cursor chat. See [Cursor Automation guide](./docs/onboarding/cursor-automation.md).
-
-### Deploy with Podman (core container)
-
-Run the **wath-core** HTTP service locally — REST API at `/api/v1/*`, MCP at `/mcp`, health at `/healthz`:
-
-```bash
-podman build -t wath-core:local .
-podman compose -f deploy/podman-compose.yml up --build
+cp deploy/.env.example deploy/.env   # set CURSOR_API_KEY for live launches
+podman compose -f deploy/podman-compose.yml up --build -d
 curl http://127.0.0.1:8080/healthz
 ```
 
-Copy `deploy/.env.example` to `deploy/.env` and set `CURSOR_API_KEY` (and optional `WATH_TOKEN`) before launching agents. Full runbook: [Deploy with Podman](./docs/onboarding/deploy-podman.md).
-
-Demo rehearsal uses wath-core when Podman is up — see [Demo rehearsal](./docs/demo/README.md).
+Full runbook: [Deploy with Podman](./docs/onboarding/deploy-podman.md). Demo scripts: [Demo rehearsal](./docs/demo/README.md).
 
 ## CLI reference
 
@@ -104,7 +219,8 @@ packages/mcp-server/    Cursor Desktop MCP + wath-core HTTP container
 templates/consumer/     wath.json.example, schema, .cursor templates
 examples/               Runnable demos — see examples/consumer-demo/README.md
 state/applications/     Git-native onboarding ledger (per managed app)
-docs/onboarding/        Lifecycle and Cursor Automation docs
+docs/onboarding/        Lifecycle, Cursor Automation, Podman deploy
+deploy/                 podman-compose.yml, .env.example
 ```
 
 ## Documentation
