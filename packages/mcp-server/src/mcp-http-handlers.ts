@@ -29,12 +29,16 @@ async function mcpPostHandler(req: Request, res: Response): Promise<void> {
     if (sessionId && transports[sessionId]) {
       transport = transports[sessionId];
     } else if (!sessionId && isInitializeRequest(req.body)) {
+      const newSessionId = randomUUID();
       transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => randomUUID(),
+        sessionIdGenerator: () => newSessionId,
+        enableJsonResponse: true,
         onsessioninitialized: (sid) => {
           transports[sid] = transport!;
         },
       });
+      // Register before handleRequest so a fast client GET cannot miss the session.
+      transports[newSessionId] = transport;
 
       transport.onclose = () => {
         const sid = transport?.sessionId;
@@ -63,7 +67,12 @@ async function mcpPostHandler(req: Request, res: Response): Promise<void> {
 
 async function mcpGetHandler(req: Request, res: Response): Promise<void> {
   const sessionId = req.headers["mcp-session-id"] as string | undefined;
-  if (!sessionId || !transports[sessionId]) {
+  if (!sessionId) {
+    // Optional pre-init SSE probe — MCP clients treat 405 as "not available yet".
+    res.status(405).set("Allow", "GET, POST, DELETE").send("Method Not Allowed");
+    return;
+  }
+  if (!transports[sessionId]) {
     res.status(404).send("Session not found");
     return;
   }

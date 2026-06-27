@@ -1,10 +1,9 @@
 {
   "mcpServers": {
     "wath": {
-      "command": "node",
-      "args": ["${WATH_ROOT}/packages/mcp-server/dist/index.js"],
-      "env": {
-        "WATH_ROOT": "${WATH_ROOT}"
+      "url": "http://127.0.0.1:8080/mcp",
+      "headers": {
+        "Authorization": "Bearer dev-local-token"
       }
     },
     "hashicorp-docs": {

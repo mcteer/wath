@@ -76,33 +76,22 @@ See [Consumer templates](./templates/consumer/README.md) and [`wath.schema.json`
 
 ### 2. Connect Wath in Cursor
 
-Open your **app repo** in Cursor and add `.cursor/mcp.json`.
-
-**wath-core on Podman** (recommended when running locally):
+Open your **app repo** in Cursor and add `.cursor/mcp.json`. Point at the **wath-core MCP host** — no local Wath clone required:
 
 ```json
 {
   "mcpServers": {
     "wath": {
-      "url": "http://localhost:8080/mcp"
+      "url": "http://127.0.0.1:8080/mcp",
+      "headers": {
+        "Authorization": "Bearer dev-local-token"
+      }
     }
   }
 }
 ```
 
-**Local Wath clone** (stdio MCP):
-
-```json
-{
-  "mcpServers": {
-    "wath": {
-      "command": "node",
-      "args": ["/absolute/path/to/wath/packages/mcp-server/dist/index.js"],
-      "env": { "WATH_ROOT": "/absolute/path/to/wath" }
-    }
-  }
-}
-```
+Use `127.0.0.1` (not `localhost`) for local Podman. The bearer token must match `WATH_TOKEN` in `deploy/.env` — Cursor requires this header on HTTP MCP URLs (otherwise it triggers a broken OAuth flow and fails with `net::ERR_FAILED`).
 
 Reload MCP in Cursor. See [Cursor Automation](./docs/onboarding/cursor-automation.md).
 
