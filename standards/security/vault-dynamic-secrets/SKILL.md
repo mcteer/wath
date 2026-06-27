@@ -68,7 +68,17 @@ vault/auth-kubernetes-role.json  # kubernetes auth role (or .hcl/.tf per repo co
 k8s/vso-dynamic-secret.yaml      # VaultDynamicSecret when secret_delivery=vso
 k8s/deployment.yaml              # updated — static DATABASE_URL value removed
 .github/workflows/vault-verify.yml
+.github/PULL_REQUEST_TEMPLATE/wath-onboarding.md  # PR description template (Wath fills on open)
 ```
+
+### Onboarding pull request
+
+Every onboarding PR back to the application repo MUST use the description structure in
+`.github/PULL_REQUEST_TEMPLATE/wath-onboarding.md`. The Wath engine materializes this
+template into consumer repos; the agent completes all sections when opening the PR.
+
+Required PR content: tier-1→tier-4 rationale, artifact checklist, verification evidence,
+Vault admin steps (documented, not executed), and SME-ratification assumptions (§8).
 
 Emit the admin steps as a documented checklist in the PR description. Never put a real
 root credential anywhere.

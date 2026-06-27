@@ -3,13 +3,20 @@ import { join } from "node:path";
 
 import type { OnboardingContext } from "../onboarding/pipeline.js";
 import { parseRequirements } from "../requirements/parser.js";
+import { artifactChecklistMarkdown } from "./artifacts.js";
+import { prSubmissionInstructions } from "./pr-template.js";
 
 /** Build the cloud agent onboarding prompt from composed context. */
 export function buildOnboardingPrompt(context: OnboardingContext): string {
   const requirements = parseRequirements(context.requirementsPath);
   const standard = context.standard;
   const skillRel = join("standards", standard.entry.path, "SKILL.md");
-  const verifyRel = join(standard.entry.path, "conformance", "verify.sh");
+  const verifyScript = join(
+    "standards",
+    standard.entry.path,
+    "conformance",
+    "verify.sh"
+  );
 
   return `# Wath onboarding run
 
@@ -24,6 +31,7 @@ Load the governing standard at \`${skillRel}\`.
 - **Standard:** ${standard.entry.id} v${standard.entry.version}
 - **Requirements:** ${context.requirementsPath}
 - **Consumer path:** ${context.consumerRepoPath}
+- **Consumer root:** ${context.consumerRoot}
 
 ## Requirements (summary)
 
@@ -33,27 +41,38 @@ ${JSON.stringify(requirements.environment, null, 2)}
 **Intent:**
 ${JSON.stringify(requirements.intent, null, 2)}
 
+## Required artifacts (all must appear in the PR)
+
+${artifactChecklistMarkdown()}
+
+Also include the **application diff** removing static credential patterns.
+
+Golden params: \`standards/security/vault-dynamic-secrets/examples/integration.params.orders-api.json\`
+Golden tier-4 layout: \`standards/security/vault-dynamic-secrets/fixtures/tier4-orders-api/\`
+
 ## Your mission
 
-1. **Detect** tier-1 static credentials in the consumer repo and state tier-1→tier-4 rationale.
-2. **Emit** \`integration.params.json\` (schema-valid) at the consumer app root before any HCL.
-3. **Render** vault policy, auth role, VSO wiring, updated k8s manifests, and CI verify workflow.
-4. **Remove** all static DATABASE_URL / DSN patterns from manifests and config (VDS-001, VDS-007).
-5. **Verify** by running:
+1. **Detect** tier-1 static credentials; state tier-1→tier-4 rationale explicitly.
+2. **Parameterize** — emit \`integration.params.json\` (schema-valid) before any HCL.
+3. **Render** all artifacts from params; match paths in the standard's §2 layout.
+4. **Verify** — hard stop on failure:
    \`\`\`bash
-   WATH_ARTIFACT_ROOT=<consumer-root> WATH_BEHAVIORAL=1 WATH_MANAGE_SANDBOX=1 \\
-     bash standards/security/vault-dynamic-secrets/conformance/verify.sh
+   cd ${context.repoRoot}
+   WATH_ARTIFACT_ROOT=${context.consumerRoot} \\
+     bash ${verifyScript}
+   WATH_ARTIFACT_ROOT=${context.consumerRoot} WATH_BEHAVIORAL=1 WATH_MANAGE_SANDBOX=1 \\
+     bash ${verifyScript}
    \`\`\`
-   A failing gate is a hard stop — fix artifacts, never weaken checks.
-6. **Open one PR** with verification evidence, admin-step checklist, and SQL grant assumptions for SME ratification.
+5. **Attach evidence** — reference \`.wath/verify-summary.json\` and behavioral output in the PR.
+6. **Open one PR** using the onboarding PR template (Stage 6).
 
-Golden params example: \`standards/security/vault-dynamic-secrets/examples/integration.params.orders-api.json\`
+${prSubmissionInstructions(context.repoRoot)}
 
 ## Invariants
 
 - Propose only — never merge.
-- No real secrets — ephemeral/throwaway resources for verification only.
-- Escalate ambiguous cases to a human SME; do not invent patterns.
+- No real secrets — ephemeral resources for verification only.
+- Escalate ambiguous cases to a human SME.
 `;
 }
 
