@@ -33,6 +33,8 @@ services:
     volumes:
       - ../state/applications:/app/state/applications:Z
       - ../examples:/app/examples:Z
+      # Sibling consumer repo (~/Projects/demo-app when wath is ~/Projects/wath)
+      - ../../demo-app:/app/consumers/demo-app:Z
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
       interval: 30s
