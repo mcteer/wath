@@ -56,6 +56,10 @@ export interface LifecycleOptions {
   materialize?: boolean;
   forceMaterialize?: boolean;
   repoUrl?: string;
+  /** Repo URL, org/repo, or consumer path when consumerRepoPath is omitted. */
+  target?: string;
+  /** From X-Wath-Consumer-Repo — the app repo calling Wath MCP. */
+  consumerRepoHeader?: string;
   /** When launch=true, run validate after integrate in the same call (default: true). */
   throughValidate?: boolean;
   /** Force a phase instead of resuming from state. */
@@ -80,6 +84,13 @@ export interface LifecycleResult {
   phase: OnboardingPhase;
   state: ApplicationState;
   prompt: string;
+  /** Set when the app was resolved from header, target, or wath.json on GitHub. */
+  resolvedConsumer?: {
+    repo: string;
+    appId: string;
+    source: "remote" | "local";
+    localConsumerPath?: string;
+  };
   materialized?: { filesWritten: string[] };
   /** Final agent run (validate when chained, otherwise the single phase agent). */
   agent?: AgentLaunchSummary;

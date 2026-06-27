@@ -43,11 +43,11 @@ function parseArgs(args: string[]): ParsedArgs {
 }
 
 function lifecycleIntentFromOptions(
-  consumerPath: string,
+  consumerPath: string | undefined,
   options: Record<string, string>
 ) {
   return {
-    consumerRepoPath: consumerPath,
+    ...(consumerPath ? { consumerRepoPath: consumerPath } : {}),
     ...(options["standard-id"] ? { standardId: options["standard-id"] } : {}),
     ...(options["wath-path"] || options["integrations-path"] || options["requirements-path"]
       ? {
@@ -104,10 +104,6 @@ async function runLifecycleCommand(
 ): Promise<void> {
   const { flags, positional, options } = parseArgs(argv);
   const consumerPath = positional[0];
-  if (!consumerPath) {
-    console.error(`Usage: wath ${legacyOnboard ? "onboard" : "lifecycle"} <consumer-path> ...`);
-    process.exit(1);
-  }
 
   const launch = flags.has("--launch");
 

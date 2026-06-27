@@ -55,7 +55,11 @@ export interface ResolvedStandard {
 
 export interface OnboardingIntent {
   standardId?: string;
-  consumerRepoPath: string;
+  /** Optional local checkout under WATH_ROOT (verify/materialize only). */
+  consumerRepoPath?: string;
+  localConsumerPath?: string;
+  /** Pre-resolved spec from GitHub or local wath.json. */
+  wathSpec?: import("./requirements/parser.js").WathSpec;
   /** Override path to wath.json */
   wathPath?: string;
   /** @deprecated Use wathPath */

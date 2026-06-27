@@ -2,6 +2,7 @@ import { loadConfig, requireApiKey } from "../config/env.js";
 import { launchOnboardingAgent } from "../agent/client.js";
 import { composeOnboardingContext } from "../onboarding/pipeline.js";
 import { materializeConsumerConfig, resolveConsumerRepoUrl } from "../onboarding/materialize.js";
+import { resolveConsumer } from "../onboarding/resolve-consumer.js";
 import { parseWathSpec, resolveWathPath } from "../requirements/parser.js";
 import { writeWathFeedback } from "../requirements/writer.js";
 import { resolveRepoRoot, resolveStandard } from "../standards/registry.js";
@@ -88,8 +89,27 @@ export async function runLifecycle(
   if (options.repoUrl) config.consumerRepoUrl = options.repoUrl;
 
   const repoRoot = resolveRepoRoot();
-  const wathPath = resolveWathPath(intent);
-  const spec = parseWathSpec(wathPath);
+  const resolvedConsumer = await resolveConsumer(
+    {
+      consumerRepoPath: intent.consumerRepoPath,
+      target: options.target ?? options.repoUrl,
+      repoUrl: options.repoUrl,
+      consumerRepoHeader: options.consumerRepoHeader,
+    },
+    repoRoot
+  );
+
+  const wathPath =
+    resolvedConsumer.wathPath ?? `${resolvedConsumer.repo}/wath.json`;
+  intent = {
+    ...intent,
+    wathSpec: resolvedConsumer.wathSpec,
+    localConsumerPath: resolvedConsumer.localConsumerPath,
+    consumerRepoPath: resolvedConsumer.localConsumerPath,
+    wathPath,
+  };
+
+  const spec = resolvedConsumer.wathSpec;
   const { appId, state } = loadOrInitState(repoRoot, spec, wathPath);
 
   const phase = resolveEffectivePhase(state, spec, options.phase);
@@ -143,11 +163,24 @@ export async function runLifecycle(
   appendHistory(state, `phase_${phase}`);
   saveApplicationState(repoRoot, appId, state);
 
-  const result: LifecycleResult = { appId, phase, state, prompt };
+  const result: LifecycleResult = {
+    appId,
+    phase,
+    state,
+    prompt,
+    resolvedConsumer: {
+      repo: resolvedConsumer.repo,
+      appId: resolvedConsumer.appId,
+      source: resolvedConsumer.source,
+      localConsumerPath: resolvedConsumer.localConsumerPath,
+    },
+  };
   const context = composeOnboardingContext(intent);
 
   const shouldMaterialize =
-    options.materialize !== false && (options.launch || options.materialize);
+    options.materialize !== false &&
+    (options.launch || options.materialize) &&
+    Boolean(resolvedConsumer.localConsumerPath);
   if (shouldMaterialize && phase !== "await_merge" && phase !== "compliant") {
     result.materialized = materializeConsumerConfig(context, config, {
       force: options.forceMaterialize,
@@ -156,11 +189,11 @@ export async function runLifecycle(
 
   const dryRun = options.dryRun ?? !options.launch;
 
-  if (dryRun && phase === "validate" && standardId) {
+  if (dryRun && phase === "validate" && standardId && resolvedConsumer.wathPath) {
     const standard = resolveStandard(repoRoot, standardId);
     const gate = runConformanceGate(standard, context.consumerRoot);
     if (!gate.passed) {
-      writeWathFeedback(wathPath, standardId, {
+      writeWathFeedback(resolvedConsumer.wathPath, standardId, {
         verify_failed: true,
         output: gate.output.slice(0, 4000),
       });

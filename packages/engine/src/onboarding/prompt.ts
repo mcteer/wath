@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import type { OnboardingContext } from "../onboarding/pipeline.js";
-import { deriveAuthMethod, parseWathSpec } from "../requirements/parser.js";
+import { deriveAuthMethod } from "../requirements/parser.js";
 import {
   artifactChecklistMarkdown,
   goldenReferenceLines,
@@ -12,7 +12,7 @@ import { prSubmissionInstructions } from "./pr-template.js";
 
 /** Build the cloud agent onboarding prompt from composed context. */
 export function buildOnboardingPrompt(context: OnboardingContext): string {
-  const spec = parseWathSpec(context.wathPath);
+  const spec = context.wathSpec;
   const standard = context.standard;
   const skillRel = standardSkillRepoPath(standard);
   const verifyScript = standardVerifyRepoPath(standard);

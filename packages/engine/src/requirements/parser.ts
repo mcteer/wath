@@ -54,36 +54,32 @@ export function normalizeServices(
   return out;
 }
 
-/** Parse and validate wath.json. Keys prefixed with _ (e.g. _instructions) are ignored. */
-export function parseWathSpec(specPath: string): WathSpec {
-  if (!existsSync(specPath)) {
-    throw new Error(`wath.json not found: ${specPath}`);
-  }
-  const raw = readFileSync(specPath, "utf8");
+/** Parse wath.json content (file label is used in error messages only). */
+export function parseWathSpecJson(raw: string, label = "wath.json"): WathSpec {
   let data: unknown;
   try {
     data = JSON.parse(raw);
   } catch {
-    throw new Error(`Invalid JSON in ${specPath}`);
+    throw new Error(`Invalid JSON in ${label}`);
   }
   if (!data || typeof data !== "object") {
-    throw new Error(`${specPath} must be a JSON object`);
+    throw new Error(`${label} must be a JSON object`);
   }
   const doc = data as Record<string, unknown>;
 
   if (typeof doc.repo !== "string" || !doc.repo.startsWith("http")) {
-    throw new Error(`${specPath}: "repo" must be an http(s) URL`);
+    throw new Error(`${label}: "repo" must be an http(s) URL`);
   }
   const stack = doc.stack as Record<string, unknown> | undefined;
   if (!stack || typeof stack.runtime !== "string") {
-    throw new Error(`${specPath}: "stack.runtime" is required (kubernetes | nomad | vm)`);
+    throw new Error(`${label}: "stack.runtime" is required (kubernetes | nomad | vm)`);
   }
   const applications = stack.applications as Record<string, string> | undefined;
   if (!applications || typeof applications !== "object" || !Object.keys(applications).length) {
-    throw new Error(`${specPath}: "stack.applications" must list at least one app → purpose`);
+    throw new Error(`${label}: "stack.applications" must list at least one app → purpose`);
   }
   if (!doc.services) {
-    throw new Error(`${specPath}: "services" is required`);
+    throw new Error(`${label}: "services" is required`);
   }
 
   const services = normalizeServices(
@@ -103,6 +99,15 @@ export function parseWathSpec(specPath: string): WathSpec {
     feedback: (doc.feedback as Record<string, unknown>) ?? {},
     raw,
   };
+}
+
+/** Parse and validate wath.json from disk. Keys prefixed with _ are ignored. */
+export function parseWathSpec(specPath: string): WathSpec {
+  if (!existsSync(specPath)) {
+    throw new Error(`wath.json not found: ${specPath}`);
+  }
+  const raw = readFileSync(specPath, "utf8");
+  return parseWathSpecJson(raw, specPath);
 }
 
 /** @deprecated Use parseWathSpec */

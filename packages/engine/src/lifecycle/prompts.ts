@@ -1,5 +1,5 @@
 import type { OnboardingContext } from "../onboarding/pipeline.js";
-import { deriveAuthMethod, parseWathSpec } from "../requirements/parser.js";
+import { deriveAuthMethod } from "../requirements/parser.js";
 import {
   artifactChecklistMarkdown,
   goldenReferenceLines,
@@ -10,7 +10,7 @@ import { prSubmissionInstructions } from "../onboarding/pr-template.js";
 import { resolveStandard } from "../standards/registry.js";
 
 function specJsonBlock(context: OnboardingContext): string {
-  const spec = parseWathSpec(context.wathPath);
+  const spec = context.wathSpec;
   return JSON.stringify(
     {
       repo: spec.repo,
@@ -26,7 +26,7 @@ function specJsonBlock(context: OnboardingContext): string {
 
 /** Manifest enrichment — PR must touch wath.json only. */
 export function buildManifestEnrichmentPrompt(context: OnboardingContext): string {
-  const spec = parseWathSpec(context.wathPath);
+  const spec = context.wathSpec;
   return `# Wath manifest enrichment
 
 Analyze the repository and **propose updates to wath.json only**.
@@ -58,7 +58,7 @@ export function buildIntegratePrompt(
   context: OnboardingContext,
   standardId: string
 ): string {
-  const spec = parseWathSpec(context.wathPath);
+  const spec = context.wathSpec;
   const standard = resolveStandard(context.repoRoot, standardId);
   const skillRel = standardSkillRepoPath(standard);
   const authMethod = deriveAuthMethod(context.runtime);
@@ -104,7 +104,7 @@ export function buildValidatePrompt(
   context: OnboardingContext,
   standardId: string
 ): string {
-  const spec = parseWathSpec(context.wathPath);
+  const spec = context.wathSpec;
   const standard = resolveStandard(context.repoRoot, standardId);
   const verifyScript = standardVerifyRepoPath(standard);
 

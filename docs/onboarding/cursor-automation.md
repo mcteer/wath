@@ -20,12 +20,15 @@ In your app repo `.cursor/mcp.json`:
     "wath": {
       "url": "http://127.0.0.1:8080/mcp",
       "headers": {
-        "Authorization": "Bearer dev-local-token"
+        "Authorization": "Bearer dev-local-token",
+        "X-Wath-Consumer-Repo": "https://github.com/YOUR_ORG/YOUR_APP"
       }
     }
   }
 }
 ```
+
+**`X-Wath-Consumer-Repo`** tells wath-core which GitHub repo is calling — wath-core fetches `wath.json` from that repo (no wath-side filesystem mount required). Set it to the same URL as the `repo` field in your `wath.json`. On materialize, the engine writes this header into `.cursor/mcp.json` automatically.
 
 **Cursor requires the `Authorization` header** on HTTP MCP URLs. Without it, Cursor incorrectly initiates an OAuth flow against localhost and the connection fails with `net::ERR_FAILED` ([known Cursor bug](https://forum.cursor.com/t/remote-mcp-server-on-localhost-fails/157307)). The token must match `WATH_TOKEN` on wath-core (`deploy/.env`).
 
@@ -41,7 +44,7 @@ For non-dev environments, replace `dev-local-token` with your issued bearer toke
 
 During onboarding materialization (`wath onboard --materialize`), the engine writes this file from `WATH_MCP_URL` in the Wath deploy environment.
 
-In Cursor Desktop, ask the agent: **"Run wath.onboard for this repository."**
+In Cursor Desktop, ask the agent: **"Run wath.onboard"** — no JSON arguments when `X-Wath-Consumer-Repo` is set (or when `WATH_DEFAULT_CONSUMER_REPO` is configured on wath-core).
 
 Set `WATH_MCP_URL` when launching cloud agents from the engine so remote agents reach the same host.
 
@@ -49,7 +52,7 @@ Set `WATH_MCP_URL` when launching cloud agents from the engine so remote agents 
 
 **Trigger:** Git push to default branch when `wath.json` changes.
 
-**Action:** MCP → Wath server → tool `wath.onboard` with `consumerPath` set to the repo root and `launch: true`.
+**Action:** MCP → Wath server → tool `wath.onboard` with `launch: true`. The MCP client should send `X-Wath-Consumer-Repo: https://github.com/org/app` (or pass `target` / `repoUrl` in the tool args).
 
 **Prompt hint for the automation agent:**
 

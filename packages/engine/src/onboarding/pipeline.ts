@@ -1,4 +1,5 @@
 import type { OnboardingIntent, ResolvedStandard } from "../types.js";
+import type { WathSpec } from "../requirements/parser.js";
 import {
   deriveRuntime,
   listRequestedStandardIds,
@@ -23,6 +24,7 @@ export interface OnboardingContext {
   repoRoot: string;
   standard: ResolvedStandard;
   wathPath: string;
+  wathSpec: WathSpec;
   requestedStandardIds: string[];
   runtime: string;
   consumerRepoPath: string;
@@ -90,11 +92,16 @@ export function composeOnboardingContext(
   intent: OnboardingIntent
 ): OnboardingContext {
   const repoRoot = resolveRepoRoot();
-  const wathPath = resolveWathPath(intent);
-  const spec = parseWathSpec(wathPath);
+  const spec = intent.wathSpec ?? parseWathSpec(resolveWathPath(intent));
+  const wathPath = intent.wathPath ?? resolveWathPath(intent);
   const runtime = deriveRuntime(spec);
   const requestedStandardIds = listRequestedStandardIds(spec);
-  const consumerRepoPath = intent.consumerRepoPath;
+
+  const localPath = intent.localConsumerPath ?? intent.consumerRepoPath;
+  const consumerRepoPath = localPath ?? spec.repo;
+  const consumerRoot = localPath
+    ? resolveConsumerRoot(repoRoot, localPath)
+    : spec.repo;
 
   const standard = resolveStandardForSpec(
     repoRoot,
@@ -103,12 +110,11 @@ export function composeOnboardingContext(
     intent.standardId
   );
 
-  const consumerRoot = resolveConsumerRoot(repoRoot, consumerRepoPath);
-
   return {
     repoRoot,
     standard,
     wathPath,
+    wathSpec: spec,
     integrationsPath: wathPath,
     requestedStandardIds,
     runtime,
