@@ -9,7 +9,6 @@ export interface RequirementsSlices {
   raw: string;
 }
 
-/** Auth method prescribed from runtime (standard SKILL §4 table for vault-dynamic-secrets). */
 export function deriveAuthMethod(runtime: string): string {
   switch (runtime) {
     case "kubernetes":
@@ -23,10 +22,6 @@ export function deriveAuthMethod(runtime: string): string {
   }
 }
 
-/**
- * Parse INTEGRATION_REQUIREMENTS.md into structured slices.
- * Lightweight table extraction — sufficient for demo; extend as needed.
- */
 export function parseRequirements(requirementsPath: string): RequirementsSlices {
   if (!existsSync(requirementsPath)) {
     throw new Error(`Requirements file not found: ${requirementsPath}`);
@@ -79,7 +74,6 @@ export function parseRequirements(requirementsPath: string): RequirementsSlices 
   return { environment, intent, constraints, raw };
 }
 
-/** Derive runtime from parsed requirements (kubernetes | nomad | vm). */
 export function deriveRuntime(requirements: RequirementsSlices): string {
   const runtime = requirements.environment["Runtime"] ?? "";
   const normalized = runtime.replace(/[`<>]/g, "").trim().toLowerCase();
@@ -91,7 +85,6 @@ export function deriveRuntime(requirements: RequirementsSlices): string {
   );
 }
 
-/** Resolve path to INTEGRATION_REQUIREMENTS.md for an onboarding intent. */
 export function resolveRequirementsPath(intent: OnboardingIntent): string {
   if (intent.requirementsPath) {
     return intent.requirementsPath;

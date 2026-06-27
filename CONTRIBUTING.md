@@ -76,6 +76,8 @@ Steps:
 
 Work in `packages/engine/`. Keep standard-specific logic in `standards/`, not in the engine. The engine should load standards via the registry and `standard.yaml` onboarding metadata — not hardcode service paths.
 
+**Code voice:** prefer direct, procedural code over ceremony — minimal comments/docstrings, practical error messages, no extra abstraction layers. Python conformance and sandbox scripts should read like ops tooling; TypeScript keeps types for the public API but avoids narrating the obvious in comments.
+
 See [docs/extensions/README.md](./docs/extensions/README.md) for extension seams and prepped insurance deltas.
 
 ### Consumer templates & examples

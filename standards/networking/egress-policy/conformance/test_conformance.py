@@ -1,26 +1,22 @@
-"""Conformance tests for egress-policy (EGR-001..002)."""
-from __future__ import annotations
+# egress-policy conformance — EGR-001..002
 
 import json
+import os
 from pathlib import Path
 
 import jsonschema
 import pytest
 import yaml
 
-ROOT = Path(__file__).resolve().parents[2]
-if "WATH_ARTIFACT_ROOT" in __import__("os").environ:
-    ROOT = Path(__import__("os").environ["WATH_ARTIFACT_ROOT"]).resolve()
-
-SCHEMA = json.loads(
-    (Path(__file__).resolve().parent.parent / "schema" / "integration.params.schema.json").read_text()
-)
+ROOT = Path(os.environ.get("WATH_ARTIFACT_ROOT", ".")).resolve()
+STANDARD_DIR = Path(__file__).resolve().parent.parent
+SCHEMA = json.loads((STANDARD_DIR / "schema" / "integration.params.schema.json").read_text())
 
 
 def _load_params():
-    path = ROOT / "integration.params.json"
-    assert path.exists(), "integration.params.json missing"
-    data = json.loads(path.read_text())
+    p = ROOT / "integration.params.json"
+    assert p.exists(), "integration.params.json missing"
+    data = json.loads(p.read_text())
     jsonschema.validate(data, SCHEMA)
     return data
 

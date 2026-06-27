@@ -4,7 +4,6 @@ import { join } from "node:path";
 import type { ResolvedStandard } from "../types.js";
 import { prTemplateRepoPath } from "./artifacts.js";
 
-/** Load the consumer onboarding PR template from Wath templates. */
 export function loadOnboardingPrTemplate(
   wathRoot: string,
   standard: ResolvedStandard
@@ -14,7 +13,6 @@ export function loadOnboardingPrTemplate(
   return readFileSync(path, "utf8");
 }
 
-/** Instructions for the agent when opening the onboarding PR. */
 export function prSubmissionInstructions(
   wathRoot: string,
   standard: ResolvedStandard

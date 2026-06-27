@@ -1,7 +1,6 @@
 import type { McpServerConfig } from "@cursor/sdk";
 import type { WathConfig } from "./env.js";
 
-/** MCP servers passed inline to cloud/local agents (HTTP transport). */
 export function buildMcpServers(config: WathConfig): Record<string, McpServerConfig> {
   const servers: Record<string, McpServerConfig> = {};
 
@@ -35,7 +34,6 @@ export function buildMcpServers(config: WathConfig): Record<string, McpServerCon
   return servers;
 }
 
-/** Consumer-repo `.cursor/mcp.json` shape for materialization. */
 export function buildConsumerMcpJson(config: WathConfig): {
   mcpServers: Record<string, { url: string; headers?: Record<string, string> }>;
 } {

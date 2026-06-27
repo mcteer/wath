@@ -1,12 +1,4 @@
 #!/usr/bin/env python3
-"""
-Behavioral gate: prove signed-identity -> role -> policy -> dynamic database secret.
-
-Uses JWT auth as a stand-in for kubernetes workload identity (no cluster required).
-Writes structured evidence to ${WATH_ARTIFACT_ROOT}/.wath/verification-evidence.json
-"""
-
-from __future__ import annotations
 
 import json
 import os
@@ -23,7 +15,6 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 ROOT = Path(os.environ["WATH_ARTIFACT_ROOT"]).resolve()
-HERE = Path(__file__).resolve().parent
 VAULT_ADDR = os.environ.get("VAULT_ADDR", "http://127.0.0.1:8200")
 VAULT_TOKEN = os.environ.get("VAULT_TOKEN", "root")
 POSTGRES_ADMIN_URL = os.environ.get(
@@ -32,7 +23,7 @@ POSTGRES_ADMIN_URL = os.environ.get(
 )
 
 
-def vault(*args: str, token: str | None = None) -> str:
+def vault(*args, token=None):
     env = {**os.environ, "VAULT_ADDR": VAULT_ADDR}
     if token:
         env["VAULT_TOKEN"] = token
@@ -46,11 +37,11 @@ def vault(*args: str, token: str | None = None) -> str:
     return result.stdout
 
 
-def load_params() -> dict:
+def load_params():
     return json.loads((ROOT / "integration.params.json").read_text())
 
 
-def ensure_postgres_schema() -> None:
+def ensure_postgres_schema():
     ddl = """
     CREATE SCHEMA IF NOT EXISTS orders;
     CREATE TABLE IF NOT EXISTS orders.orders (
@@ -60,14 +51,16 @@ def ensure_postgres_schema() -> None:
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     """
-    with psycopg2.connect(POSTGRES_ADMIN_URL) as conn:
-        conn.autocommit = True
-        with conn.cursor() as cur:
-            cur.execute(ddl)
+    conn = psycopg2.connect(POSTGRES_ADMIN_URL)
+    conn.autocommit = True
+    try:
+        cur = conn.cursor()
+        cur.execute(ddl)
+    finally:
+        conn.close()
 
 
-def configure_vault(params: dict, policy_hcl: str) -> tuple[str, str, str]:
-    """Configure database + jwt auth; return (jwt_role_name, bound_subject, private_pem)."""
+def configure_vault(params, policy_hcl):
     mounts = json.loads(vault("secrets", "list", "-format=json", token=VAULT_TOKEN))
     if "database/" not in mounts:
         vault("secrets", "enable", "-path=database", "database", token=VAULT_TOKEN)
@@ -76,7 +69,7 @@ def configure_vault(params: dict, policy_hcl: str) -> tuple[str, str, str]:
     vault(
         "write",
         "database/config/orders-api",
-        f"plugin_name=postgresql-database-plugin",
+        "plugin_name=postgresql-database-plugin",
         f"allowed_roles={params['db_role']}",
         f"connection_url={conn_url}",
         token=VAULT_TOKEN,
@@ -90,7 +83,7 @@ def configure_vault(params: dict, policy_hcl: str) -> tuple[str, str, str]:
     vault(
         "write",
         f"database/roles/{params['db_role']}",
-        f"db_name=orders-api",
+        "db_name=orders-api",
         f"creation_statements={creation}",
         f"default_ttl={params['default_ttl_seconds']}s",
         f"max_ttl={params['max_ttl_seconds']}s",
@@ -153,44 +146,41 @@ def configure_vault(params: dict, policy_hcl: str) -> tuple[str, str, str]:
     return jwt_role, bound_subject, private_pem.decode()
 
 
-def mint_jwt(bound_subject: str, private_pem: str) -> str:
+def mint_jwt(bound_subject, private_pem):
     now = int(time.time())
-    claims = {
-        "sub": bound_subject,
-        "aud": "vault",
-        "iat": now,
-        "exp": now + 300,
-    }
+    claims = {"sub": bound_subject, "aud": "vault", "iat": now, "exp": now + 300}
     return jwt.encode(claims, private_pem, algorithm="RS256")
 
 
-def login_and_read_creds(jwt_role: str, jwt_token: str, creds_path: str) -> dict:
+def login_and_read_creds(jwt_role, jwt_token, creds_path):
     out = vault(
         "write",
         "-format=json",
-        f"auth/jwt/login",
+        "auth/jwt/login",
         f"role={jwt_role}",
         f"jwt={jwt_token}",
     )
     login = json.loads(out)
     client_token = login["auth"]["client_token"]
-
     creds_out = vault("read", "-format=json", creds_path, token=client_token)
     return json.loads(creds_out)
 
 
-def verify_postgres_login(username: str, password: str) -> int:
+def verify_postgres_login(username, password):
     admin = POSTGRES_ADMIN_URL.replace("postgresql://", "postgres://")
     host_part = admin.split("@", 1)[1]
     dsn = f"postgresql://{username}:{password}@{host_part}"
-    with psycopg2.connect(dsn) as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT COUNT(*) FROM orders.orders")
-            row = cur.fetchone()
-            return int(row[0]) if row else 0
+    conn = psycopg2.connect(dsn)
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM orders.orders")
+        row = cur.fetchone()
+        return int(row[0]) if row else 0
+    finally:
+        conn.close()
 
 
-def write_evidence(payload: dict) -> Path:
+def write_evidence(payload):
     out_dir = ROOT / ".wath"
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / "verification-evidence.json"
@@ -198,7 +188,7 @@ def write_evidence(payload: dict) -> Path:
     return path
 
 
-def main() -> int:
+def main():
     params = load_params()
     policy_hcl = (ROOT / "vault" / "policy.hcl").read_text()
     creds_path = params["creds_path"]
@@ -221,9 +211,8 @@ def main() -> int:
 
     max_ttl = params["max_ttl_seconds"]
     if lease_duration is None or lease_duration > max_ttl:
-        raise SystemExit(
-            f"lease_duration {lease_duration} exceeds max_ttl {max_ttl}"
-        )
+        print(f"lease_duration {lease_duration} exceeds max_ttl {max_ttl}", file=sys.stderr)
+        return 1
 
     evidence = {
         "standard": "vault-dynamic-secrets",
@@ -245,7 +234,7 @@ def main() -> int:
 
 if __name__ == "__main__":
     try:
-        raise SystemExit(main())
+        sys.exit(main())
     except subprocess.CalledProcessError as exc:
         print(exc.stderr or exc.stdout or str(exc), file=sys.stderr)
-        raise SystemExit(1) from exc
+        sys.exit(1)
