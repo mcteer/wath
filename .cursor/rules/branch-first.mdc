@@ -1,0 +1,30 @@
+---
+description: Create a feature branch before any code changes — never commit on main directly
+alwaysApply: true
+---
+
+# Branch first (agent-owned)
+
+**Before editing any tracked file**, verify you are not on `main` (or `master`).
+
+## Required workflow
+
+1. Run `git branch --show-current` (or `git status -sb`) **before the first edit** of the session.
+2. If on `main` / `master` and the task involves code, docs, config, or rules changes:
+   ```bash
+   git checkout -b feat/<short-description>
+   ```
+3. Do all work on that branch. Commit and push the branch; open a PR — **never push commits directly to `main`** unless the user explicitly asks to commit on main.
+4. If the user says "merge" or "push + pr" after work already landed on main, branch from the current state and move commits — do not leave `main` ahead of origin with unmerged work.
+
+## Exceptions (stay on current branch)
+
+- User explicitly says to work on `main` or an named branch
+- Read-only exploration (no file edits)
+- User asked only to merge an existing PR
+
+## Do not
+
+- Start coding and "branch later"
+- Apologize and promise to branch next time without running `git checkout -b` first
+- Create empty commits on main to "fix" already-uncommitted work without branching first
