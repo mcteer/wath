@@ -1,5 +1,5 @@
 id: vault-dynamic-secrets
-version: 3
+version: 4
 owner: security-engineering
 rule_prefix: VDS
 rules:
