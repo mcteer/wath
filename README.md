@@ -43,7 +43,8 @@ examples/           Runnable demos — see `examples/consumer-demo/README.md`
 
 ## Documentation
 
-- [Contributing](./CONTRIBUTING.md) — how to add standards and submit PRs
+- [Contributing](./CONTRIBUTING.md) — how to add standards and submit PRs to **Wath**
+- [Consumer templates](./templates/consumer/README.md) — app-repo intake, PR template, CI workflow
 
 ## Core invariants
 

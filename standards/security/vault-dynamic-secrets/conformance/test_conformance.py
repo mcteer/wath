@@ -75,6 +75,8 @@ def _load_manifests():
 def _consumer_files():
     for f in ROOT.rglob("*"):
         if f.is_file() and not (set(f.relative_to(ROOT).parts) & SCAN_EXCLUDE_DIRS):
+            if "PULL_REQUEST_TEMPLATE" in f.relative_to(ROOT).parts:
+                continue
             yield f
 
 

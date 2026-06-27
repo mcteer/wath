@@ -62,6 +62,17 @@ export function materializeConsumerConfig(
     join(standardsRulesDir, "vault-dynamic-secrets.mdc")
   );
 
+  const prTemplateSrc = join(
+    templateRoot,
+    ".github/PULL_REQUEST_TEMPLATE/wath-onboarding.md"
+  );
+  const prTemplateDest = join(
+    consumerRoot,
+    ".github/PULL_REQUEST_TEMPLATE/wath-onboarding.md"
+  );
+  mkdirSync(join(consumerRoot, ".github/PULL_REQUEST_TEMPLATE"), { recursive: true });
+  copyIfNeeded(prTemplateSrc, prTemplateDest);
+
   const requirements = parseRequirements(context.requirementsPath);
   const environmentJson = generateEnvironmentConfig(
     requirements,

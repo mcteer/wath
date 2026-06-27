@@ -56,9 +56,18 @@ available, prove the signed-identity → role → policy → dynamic-secret flow
 weaken a check or the standard to make it pass.
 
 ## Stage 6 — Open PR
-Open one PR (`autoCreatePR`) containing all artifacts plus a description that states: the tier-1→
-tier-4 rationale, the attached verification evidence, the admin-step checklist, and **any
-least-privilege assumption you made** (e.g. the SQL grants) for the SME to ratify (SKILL.md §8).
+Open one PR (`autoCreatePR`) against the application repository. The PR description **MUST**
+follow `.github/PULL_REQUEST_TEMPLATE/wath-onboarding.md` — complete every section:
+
+- tier-1→tier-4 rationale in Summary
+- all artifact checkboxes addressed
+- verification evidence (paste `verify.sh` output or `.wath/verify-summary.json` summary)
+- Vault admin prerequisite checklist (document only — do not execute)
+- SQL grant / identity assumptions for SME ratification (SKILL.md §8)
+
+Include the PR template file in the branch if not already present (Wath materializes it under
+`.github/PULL_REQUEST_TEMPLATE/`).
+
 **DoD:** PR is reviewable against evidence, not vibes. Then stop — review and merge are human.
 
 ---
