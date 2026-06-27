@@ -95,23 +95,36 @@ ${goldenReferenceLines(standard)}
 1. Detect anti-patterns.
 2. Emit \`integration.params.json\` (schema-valid) first.
 3. Render all standard artifacts from params.
-4. Stop — do not open a PR.
+4. Push all commits to **one integration branch** — do not open a PR.
 `;
 }
 
 /** Validation agent — run gates and open integration PR on pass. */
 export function buildValidatePrompt(
   context: OnboardingContext,
-  standardId: string
+  standardId: string,
+  workBranch?: string
 ): string {
   const spec = context.wathSpec;
   const standard = resolveStandard(context.repoRoot, standardId);
   const verifyScript = standardVerifyRepoPath(standard);
 
+  const branchBlock = workBranch
+    ? `
+## Integration branch (required)
+
+Integration commits are on **\`${workBranch}\`**.
+
+- Check out \`${workBranch}\` — **do not create a new branch**.
+- Run verify gates on that branch; fix failures in place if needed.
+- Open **one PR** from \`${workBranch}\` → \`main\`.
+`
+    : "";
+
   return `# Wath validation — ${standardId}
 
 Verify the integration for **${standardId}** and open **one integration PR** on success.
-
+${branchBlock}
 ## Target repo
 ${spec.repo}
 
@@ -127,7 +140,7 @@ WATH_ARTIFACT_ROOT=${context.consumerRoot} WATH_BEHAVIORAL=1 WATH_MANAGE_SANDBOX
 
 ## On pass
 1. Attach \`.wath/verify-summary.json\` evidence in the PR body.
-2. Open one PR to \`${spec.repo}\` with all integration artifacts + app diff.
+2. Open one PR${workBranch ? ` from \`${workBranch}\`` : ""} to \`${spec.repo}\` with all integration artifacts + app diff.
 3. Use the onboarding PR template.
 
 ${prSubmissionInstructions(context.repoRoot, standard)}

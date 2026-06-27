@@ -53,6 +53,9 @@ properties:
           type: integer
         pr_url:
           type: ["string", "null"]
+        work_branch:
+          type: ["string", "null"]
+          description: Integration branch from integrate agent; validate opens PR from here
         last_verify:
           type: string
           enum: [passed, failed, unknown]

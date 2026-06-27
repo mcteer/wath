@@ -2,6 +2,7 @@ import { Agent, CursorAgentError } from "@cursor/sdk";
 
 import type { WathConfig } from "../config/env.js";
 import { buildMcpServers } from "../config/mcp.js";
+import { extractAgentBranch } from "./git.js";
 
 export interface AgentLaunchOptions {
   apiKey: string;
@@ -10,6 +11,8 @@ export interface AgentLaunchOptions {
   /** Cloud: GitHub repo URL. Local: workspace directory. */
   target: { mode: "cloud"; repoUrl: string } | { mode: "local"; cwd: string };
   autoCreatePR?: boolean;
+  /** Cloud: git ref to check out (integrate branch for validate). */
+  startingRef?: string;
   onEvent?: (event: AgentStreamEvent) => void;
 }
 
@@ -24,6 +27,7 @@ export interface AgentLaunchResult {
   status: string;
   result?: string;
   prUrl?: string;
+  branch?: string;
   durationMs?: number;
 }
 
@@ -51,7 +55,12 @@ export async function launchOnboardingAgent(
           apiKey: options.apiKey,
           model: { id: options.config.model },
           cloud: {
-            repos: [{ url: options.target.repoUrl }],
+            repos: [
+              {
+                url: options.target.repoUrl,
+                ...(options.startingRef ? { startingRef: options.startingRef } : {}),
+              },
+            ],
             autoCreatePR: options.autoCreatePR ?? true,
             skipReviewerRequest: true,
           },
@@ -93,6 +102,7 @@ export async function launchOnboardingAgent(
   }
 
   const prUrl = result.git?.branches?.find((b) => b.prUrl)?.prUrl;
+  const branch = extractAgentBranch(result.git?.branches);
 
   return {
     agentId: agent.agentId,
@@ -100,6 +110,7 @@ export async function launchOnboardingAgent(
     status: result.status,
     result: result.result,
     prUrl,
+    branch,
     durationMs: result.durationMs,
   };
 }

@@ -66,6 +66,7 @@ function defaultIntegrationState(wathRoot: string, standardId: string): Integrat
     status: "pending",
     standard_version: standard.entry.version,
     pr_url: null,
+    work_branch: null,
     last_verify: "unknown",
     compliance: "in_compliance",
     retry_count: 0,

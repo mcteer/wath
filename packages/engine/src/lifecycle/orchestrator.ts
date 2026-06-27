@@ -210,7 +210,11 @@ export async function runLifecycle(
       prompt = buildIntegratePrompt(composeOnboardingContext(intent), standardId!);
       break;
     case "validate":
-      prompt = buildValidatePrompt(composeOnboardingContext(intent), standardId!);
+      prompt = buildValidatePrompt(
+        composeOnboardingContext(intent),
+        standardId!,
+        state.integrations[standardId!]?.work_branch ?? undefined
+      );
       break;
     case "await_merge":
       prompt = awaitMergePrompt(state);
@@ -297,12 +301,19 @@ export async function runLifecycle(
       await notifyProgress(options, validatingProgress(standardId));
     }
 
+    const validateBranch =
+      phase === "validate" && standardId
+        ? (loadApplicationState(repoRoot, appId) ?? state).integrations[standardId]?.work_branch ??
+          undefined
+        : undefined;
+
     const apiKey = requireApiKey(config);
     const agentResult = await launchOnboardingAgent({
       apiKey,
       prompt,
       config,
       autoCreatePR: phase === "validate" || phase === "enrich_manifest",
+      ...(validateBranch ? { startingRef: validateBranch } : {}),
       target: options.local
         ? { mode: "local", cwd: context.consumerRoot }
         : { mode: "cloud", repoUrl: resolveConsumerRepoUrl(context, config) },
@@ -322,6 +333,10 @@ export async function runLifecycle(
       result.state = loadApplicationState(repoRoot, appId)!;
       await notifyProgress(options, prSubmittedProgress(standardId, agentResult.prUrl));
     } else if (phase === "integrate") {
+      if (standardId && agentResult.branch && state.integrations[standardId]) {
+        state.integrations[standardId].work_branch = agentResult.branch;
+        appendHistory(state, "integrate_branch", agentResult.branch);
+      }
       state.phase = "validate";
       appendHistory(state, "integrate_complete", standardId);
       persistState();
