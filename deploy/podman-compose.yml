@@ -11,6 +11,8 @@
 #     -v ./state/applications:/app/state/applications:Z \
 #     wath-core:local
 
+name: wath
+
 services:
   wath-core:
     build:
