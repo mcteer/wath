@@ -1,0 +1,75 @@
+---
+description: >
+  The step-by-step operating procedure for a Wath cloud agent executing an onboarding run.
+  Use this whenever onboarding an application to a platform service via Wath, processing an
+  INTEGRATION_REQUIREMENTS.md, generating a Vault/secrets integration, or executing any stage of
+  the Wath process flow (detect, compose, parameterize, render, verify, open PR). Tells you what
+  to do at each stage and its definition of done.
+globs:
+alwaysApply: false
+---
+
+# Wath agent — process flow operating procedure
+
+Execute the onboarding as ordered stages. **Do not skip ahead.** Each stage has a definition of
+done (DoD); if you cannot meet it, stop and report rather than proceeding.
+
+## Stage 1 — Detect
+Read the repo and `INTEGRATION_REQUIREMENTS.md`. Determine: runtime (kubernetes/nomad/vm), stack,
+the current static-credential pattern to replace, target environments, and identity (namespaces /
+service accounts / claims).
+
+Scan for **tier-1 static credentials** per the standard's §5 (e.g. `DATABASE_URL` with embedded
+password in `k8s/deployment.yaml`, `.env.example`, or app code). If found, tier-4 dynamic database
+secrets are **mandatory** — not optional.
+
+**DoD:** runtime and datastore intent unambiguous; tier-1 patterns identified and flagged for removal.
+Missing/contradictory required fields → ask the submitter; do not assume.
+
+## Stage 2 — Compose / select standard
+Load the governing standard: `@standards/security/vault-dynamic-secrets/SKILL.md`. Derive the auth method
+from the runtime per its §4 table. Honor the what-vs-admin boundary (§2). State the tier-1→tier-4
+upgrade rationale explicitly.
+
+**DoD:** you can name every rule (VDS-001..008) you must satisfy, the auth method you'll use, and
+you have committed to tier-4 (not KV, not static creds left in place).
+
+## Stage 3 — Parameterize (typed params first)
+Emit `integration.params.json` conforming to
+`@standards/security/vault-dynamic-secrets/schema/integration.params.schema.json`. This is the source of
+truth for TTLs, capabilities, identity binding, and delivery.
+**DoD:** params validate against the schema. If a value would violate a bound (e.g. TTL > 1h),
+that's a signal to fix intent, not to widen the bound.
+
+## Stage 4 — Render artifacts
+From the params, generate: the app diff (static DSN → dynamic creds), `vault/policy.hcl`
+(least-privilege, `["read"]`, no wildcards), the auth-role binding, the consumer wiring
+(VSO `VaultDynamicSecret` CR or Agent Injector annotations), the updated deployment manifest, and
+the shipped CI verify workflow (VDS-008). Render policy/role from the params — do not free-write HCL.
+**DoD:** all artifacts present; admin prerequisites captured as a PR checklist, not executed.
+
+## Stage 5 — Verify in sandbox
+Run the conformance gate: `@standards/security/vault-dynamic-secrets/conformance/verify.sh`
+(rule assertions VDS-001..008 + `vault policy fmt` + `kubeconform`). If behavioral verification is
+available, prove the signed-identity → role → policy → dynamic-secret flow against a throwaway DB.
+**DoD:** the gate passes. **A failing gate is a hard stop** — fix the artifacts and re-verify; never
+weaken a check or the standard to make it pass.
+
+## Stage 6 — Open PR
+Open one PR (`autoCreatePR`) against the application repository. The PR description **MUST**
+follow `.github/PULL_REQUEST_TEMPLATE/wath-onboarding.md` — complete every section:
+
+- tier-1→tier-4 rationale in Summary
+- all artifact checkboxes addressed
+- verification evidence (paste `verify.sh` output or `.wath/verify-summary.json` summary)
+- Vault admin prerequisite checklist (document only — do not execute)
+- SQL grant / identity assumptions for SME ratification (SKILL.md §8)
+
+Include the PR template file in the branch if not already present (Wath materializes it under
+`.github/PULL_REQUEST_TEMPLATE/`).
+
+**DoD:** PR is reviewable against evidence, not vibes. Then stop — review and merge are human.
+
+---
+**If at any stage the standard is silent or the case is novel/ambiguous, halt and escalate to a
+human SME.** Forward progress is never worth inventing an unratified security pattern.

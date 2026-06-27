@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Walk through the golden tier-4 fixture as a pre-baked onboarding PR (latency hedge).
+#
+# Use on stage when the live cloud agent run is slow — same artifacts the agent must produce.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

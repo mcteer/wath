@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
-# vault-dynamic-secrets verify — WATH_ARTIFACT_ROOT=/path/to/worktree ./verify.sh
+# Conformance gate for the vault-dynamic-secrets standard.
+#
+# One entry point, two callers:
+#   - Tier-1: Wath's sandbox runs this against the agent's freshly generated PR.
+#   - Tier-2: the shipped CI workflow (VDS-008) runs this in the team's real environment.
+#
+# Usage:
+#   WATH_ARTIFACT_ROOT=/path/to/worktree ./verify.sh
+#   WATH_BEHAVIORAL=1 WATH_MANAGE_SANDBOX=1 ./verify.sh   # full Tier-1 + sandbox
+#   SKIP_TOOLCHAIN=1 ./verify.sh                          # pytest only
 set -euo pipefail
 
 ROOT="${WATH_ARTIFACT_ROOT:-$(pwd)}"

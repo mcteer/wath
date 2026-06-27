@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/** Wath CLI — list standards, dry-run/launch onboarding, run conformance gates. */
 import { listStandards, resolveRepoRoot, resolveStandard } from "../standards/registry.js";
 import { runOnboarding } from "../onboarding/pipeline.js";
 import { runConformanceGate } from "../verify/runner.js";

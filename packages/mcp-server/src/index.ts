@@ -1,3 +1,7 @@
+/**
+ * Wath MCP server — HTTP transport exposing wath.onboard / wath.status.
+ * Delegates to @wath/engine; deploy separately for Cursor Desktop.
+ */
 export { loadConfig } from "@wath/engine";
 
 console.log(

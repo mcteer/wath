@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Timed demo segments — local rehearsal run-of-show (no cloud agent unless --launch).
 #
+# Segments 1–4 target the 10-minute "working tool" front-load:
+#   1 tier-1 static creds → 2 verify harness → 3 dry-run onboard → 4 fallback PR
+#
 # Usage:
 #   ./scripts/demo-run.sh              # segments 1-4 (dry-run onboard)
 #   ./scripts/demo-run.sh --launch     # segment 5: live cloud agent (needs API key + repo URL)
