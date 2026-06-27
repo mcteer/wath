@@ -18,7 +18,22 @@ spec:
       containers:
         - name: orders-api
           image: orders-api:demo
+          ports:
+            - containerPort: 8000
+              name: http
           env:
-            # Tier-1: static credential — Wath onboarding replaces this with dynamic secrets
+            # Tier-1: static credential in manifest — Wath onboarding replaces this
             - name: DATABASE_URL
-              value: "postgres://demo:demo@postgres:5432/orders"
+              value: "postgres://orders:orders@postgres:5432/orders"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
