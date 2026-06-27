@@ -1,0 +1,83 @@
+# Application onboarding state — one file per managed app repo.
+# Path: state/applications/<org>/<repo>.yaml
+$schema: http://json-schema.org/draft-07/schema#
+title: WathApplicationState
+type: object
+required:
+  - repo
+  - wath_path
+  - phase
+  - manifest
+  - integrations
+  - history
+  - updated_at
+additionalProperties: false
+properties:
+  repo:
+    type: string
+    format: uri
+    description: Git repository URL
+  wath_path:
+    type: string
+    default: wath.json
+  phase:
+    type: string
+    enum:
+      - discover
+      - enrich_manifest
+      - integrate
+      - validate
+      - await_merge
+      - record
+      - compliant
+      - non_compliant
+  manifest:
+    type: object
+    required: [status]
+    properties:
+      status:
+        type: string
+        enum: [pending, pending_pr, accepted]
+      pr_url:
+        type: ["string", "null"]
+  integrations:
+    type: object
+    additionalProperties:
+      type: object
+      required: [status, standard_version, last_verify, compliance]
+      properties:
+        status:
+          type: string
+          enum: [pending, pr_open, merged, failed]
+        standard_version:
+          type: integer
+        pr_url:
+          type: ["string", "null"]
+        last_verify:
+          type: string
+          enum: [passed, failed, unknown]
+        compliance:
+          type: string
+          enum: [in_compliance, drift, non_compliant]
+        retry_count:
+          type: integer
+          minimum: 0
+  current_standard_id:
+    type: string
+    description: Standard ID in progress during integrate/validate
+  history:
+    type: array
+    items:
+      type: object
+      required: [at, event]
+      properties:
+        at:
+          type: string
+          format: date-time
+        event:
+          type: string
+        detail:
+          type: string
+  updated_at:
+    type: string
+    format: date-time
