@@ -56,10 +56,23 @@ export interface LifecycleOptions {
   materialize?: boolean;
   forceMaterialize?: boolean;
   repoUrl?: string;
+  /** When launch=true, run validate after integrate in the same call (default: true). */
+  throughValidate?: boolean;
   /** Force a phase instead of resuming from state. */
   phase?: OnboardingPhase;
   standardId?: string;
   maxRetries?: number;
+  /** @internal Prevents recursive validate chain. */
+  _chainValidate?: boolean;
+}
+
+export interface AgentLaunchSummary {
+  agentId: string;
+  runId: string;
+  status: string;
+  prUrl?: string;
+  durationMs?: number;
+  result?: string;
 }
 
 export interface LifecycleResult {
@@ -68,13 +81,10 @@ export interface LifecycleResult {
   state: ApplicationState;
   prompt: string;
   materialized?: { filesWritten: string[] };
-  agent?: {
-    agentId: string;
-    runId: string;
-    status: string;
-    prUrl?: string;
-    durationMs?: number;
-  };
+  /** Final agent run (validate when chained, otherwise the single phase agent). */
+  agent?: AgentLaunchSummary;
+  /** Present when launch chains integrate → validate in one call. */
+  integrateAgent?: AgentLaunchSummary;
 }
 
 export interface AuditEntry {

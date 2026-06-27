@@ -10,7 +10,7 @@ export const WATH_TOOL_DEFINITIONS = [
   {
     name: "wath.onboard",
     description:
-      "Start or resume multi-phase Wath onboarding for an app repo (wath.json). Dry-run by default; set launch=true to run Cursor agents.",
+      "Start or resume Wath onboarding for an app repo (wath.json). Dry-run by default; set launch=true to run Cursor cloud agents through integrate+validate and open an integration PR in one call.",
     inputSchema: {
       type: "object",
       properties: {
@@ -27,6 +27,11 @@ export const WATH_TOOL_DEFINITIONS = [
         },
         standardId: { type: "string", description: "Standard ID for integrate/validate" },
         repoUrl: { type: "string", description: "Override GitHub repo URL for cloud agent" },
+        throughValidate: {
+          type: "boolean",
+          description:
+            "When launch=true, run validate after integrate in the same call (default: true). Set false for integrate-only.",
+        },
       },
       required: ["consumerPath"],
     },
@@ -96,6 +101,7 @@ export async function executeWathTool(
           materialize: args.materialize !== false && (launch || Boolean(args.materialize)),
           ...(args.phase ? { phase: args.phase as OnboardingPhase } : {}),
           ...(args.repoUrl ? { repoUrl: String(args.repoUrl) } : {}),
+          ...(args.throughValidate === false ? { throughValidate: false } : {}),
         }
       );
     }

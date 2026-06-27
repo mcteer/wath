@@ -203,6 +203,24 @@ export async function runLifecycle(
     result.state = state;
   }
 
+  const chainValidate =
+    options.launch &&
+    options.throughValidate !== false &&
+    !options._chainValidate &&
+    phase === "integrate" &&
+    result.agent?.status === "finished";
+
+  if (chainValidate) {
+    const validateResult = await runLifecycle(intent, {
+      ...options,
+      _chainValidate: true,
+    });
+    return {
+      ...validateResult,
+      integrateAgent: result.agent,
+    };
+  }
+
   return result;
 }
 
