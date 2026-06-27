@@ -7,7 +7,7 @@ Phase 6 prepares **cold extension** — changes you can make live when an interv
 | Seam | What to change | Example cold prompt |
 |------|----------------|---------------------|
 | **Standard (SKILL)** | Add or edit `standards/<bu>/<id>/` + one registry line | "Also require mTLS via our PKI standard" |
-| **Integration spec** | Edit `WATCH_INTEGRATIONS.json` (`stack`, `services`) | "This runs on Nomad, not Kubernetes" |
+| **Integration spec** | Edit `wath.json` (`stack`, `services`) | "This runs on Nomad, not Kubernetes" |
 | **Feedback loop** | Re-submit the same spec after validation findings (`feedback`) | "PgBouncer transaction pooling breaks session auth" |
 | **Fleet** | Run onboarding across multiple consumer paths | "Onboard our payments API the same way" |
 
@@ -29,11 +29,11 @@ A prepped stub lives at `standards/networking/egress-policy/`. It is **not** in 
       - network-policy
 ```
 
-Add a key under `services` in WATCH_INTEGRATIONS.json and re-run onboard.
+Add a key under `services` in wath.json and re-run onboard.
 
 ## 2. Change runtime / auth method
 
-Auth method is derived from **`stack.runtime`** in WATCH_INTEGRATIONS.json:
+Auth method is derived from **`stack.runtime`** in wath.json:
 
 | Runtime | Auth method |
 |---------|-------------|
@@ -43,11 +43,11 @@ Auth method is derived from **`stack.runtime`** in WATCH_INTEGRATIONS.json:
 
 Example: change `"runtime": "nomad"`, re-run onboard.
 
-See `examples/consumer-demo-nomad/WATCH_INTEGRATIONS.json` for a prepped Nomad variant.
+See `examples/consumer-demo-nomad/wath.json` for a prepped Nomad variant.
 
 ## 3. Iterative re-onboarding (same file, re-run)
 
-When validation surfaces a gap, update **WATCH_INTEGRATIONS.json in place** and re-run:
+When validation surfaces a gap, update **wath.json in place** and re-run:
 
 1. User edits `stack` / `services`; Wath appends to `feedback`.
 2. Re-run `wath onboard <path> --launch --materialize`.

@@ -21,13 +21,15 @@ export {
   deriveAuthMethod,
   listRequestedStandardIds,
   normalizeServices,
+  parseWathSpec,
   parseIntegrationsSpec,
   parseRequirements,
+  resolveWathPath,
   resolveIntegrationsPath,
   resolveRequirementsPath,
   SERVICE_ALIASES,
 } from "./requirements/parser.js";
-export type { WathIntegrationsSpec, RequirementsSlices } from "./requirements/parser.js";
+export type { WathSpec, WathIntegrationsSpec, RequirementsSlices } from "./requirements/parser.js";
 
 export { composeOnboardingContext, runOnboarding } from "./onboarding/pipeline.js";
 export type { OnboardingContext, OnboardingOptions, OnboardingResult } from "./onboarding/pipeline.js";

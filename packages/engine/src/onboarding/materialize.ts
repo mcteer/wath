@@ -5,7 +5,7 @@ import { buildConsumerMcpJson } from "../config/mcp.js";
 import type { WathConfig } from "../config/env.js";
 import { generateEnvironmentConfig } from "../environment/generator.js";
 import type { OnboardingContext } from "./pipeline.js";
-import { parseIntegrationsSpec } from "../requirements/parser.js";
+import { parseWathSpec } from "../requirements/parser.js";
 import { prTemplateRepoPath } from "./artifacts.js";
 
 export interface MaterializeResult {
@@ -84,7 +84,7 @@ export function materializeConsumerConfig(
     copyIfNeeded(prTemplateSrc, prTemplateDest);
   }
 
-  const spec = parseIntegrationsSpec(context.integrationsPath);
+  const spec = parseWathSpec(context.wathPath);
   const environmentJson = generateEnvironmentConfig(spec, context.standard);
   const envPath = join(cursorDir, "environment.json");
   if (!existsSync(envPath) || options.force) {
@@ -111,7 +111,7 @@ export function materializeConsumerConfig(
   return { consumerRoot, filesWritten };
 }
 
-/** Extract repository URL from WATCH_INTEGRATIONS.json or config. */
+/** Extract repository URL from wath.json or config. */
 export function resolveConsumerRepoUrl(
   context: OnboardingContext,
   config: WathConfig
@@ -119,11 +119,11 @@ export function resolveConsumerRepoUrl(
   if (config.consumerRepoUrl) {
     return config.consumerRepoUrl;
   }
-  const spec = parseIntegrationsSpec(context.integrationsPath);
+  const spec = parseWathSpec(context.wathPath);
   if (spec.repo.startsWith("http")) {
     return spec.repo;
   }
   throw new Error(
-    "Repository URL required for cloud onboarding. Set WATH_CONSUMER_REPO_URL or fill repo in WATCH_INTEGRATIONS.json"
+    "Repository URL required for cloud onboarding. Set WATH_CONSUMER_REPO_URL or fill repo in wath.json"
   );
 }

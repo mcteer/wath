@@ -35,4 +35,4 @@ Vault is the platform service. Wath is the ford — it prescribes *your app's* c
 Yes — add a registry entry and SKILL triplet. The engine loads standards from the catalog; it does not hardcode Vault.
 
 **What if requirements change after merge?**  
-Update `WATCH_INTEGRATIONS.json` and re-run onboarding. Tier-2 CI findings feed back through `feedback` and service config.
+Update `wath.json` and re-run onboarding. Tier-2 CI findings feed back through `feedback` and service config.

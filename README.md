@@ -2,9 +2,9 @@
 
 **Onboarding & conformance engine** for platform service integrations.
 
-A developer describes their app in business terms via **`WATCH_INTEGRATIONS.json`**; Wath prescribes compliant integrations with platform services, **verifies** them deterministically, and opens a **pull request** for humans to review and merge.
+A developer describes their app in business terms via **`wath.json`**; Wath prescribes compliant integrations with platform services, **verifies** them deterministically, and opens a **pull request** for humans to review and merge.
 
-Re-submit the same spec whenever the stack or services change — first onboarding or remediation months later.
+Re-submit the same manifest whenever the stack or services change — first onboarding or remediation months later.
 
 The reference implementation onboards applications to **HashiCorp Vault dynamic database secrets** (tier-4). The architecture is designed to grow into an open **service integration marketplace** — each new platform service is a pluggable standard in `standards/`.
 
@@ -46,7 +46,7 @@ examples/           Runnable demos — see `examples/consumer-demo/README.md`
 ## Documentation
 
 - [Contributing](./CONTRIBUTING.md) — how to add standards and submit PRs to **Wath**
-- [Consumer templates](./templates/consumer/README.md) — app-repo intake, PR template, CI workflow
+- [Consumer templates](./templates/consumer/README.md) — `wath.json.example`, PR template, CI workflow
 - [Extension seams](./docs/extensions/README.md) — cold-extension prep (add standard, change runtime, fleet)
 - [Demo rehearsal](./docs/demo/README.md) — run-of-show, checklist, latency hedge
 

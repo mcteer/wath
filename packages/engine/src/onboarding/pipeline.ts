@@ -2,8 +2,8 @@ import type { OnboardingIntent, ResolvedStandard } from "../types.js";
 import {
   deriveRuntime,
   listRequestedStandardIds,
-  parseIntegrationsSpec,
-  resolveIntegrationsPath,
+  parseWathSpec,
+  resolveWathPath,
 } from "../requirements/parser.js";
 import {
   findStandardsForRuntime,
@@ -22,11 +22,13 @@ import {
 export interface OnboardingContext {
   repoRoot: string;
   standard: ResolvedStandard;
-  integrationsPath: string;
+  wathPath: string;
   requestedStandardIds: string[];
   runtime: string;
   consumerRepoPath: string;
   consumerRoot: string;
+  /** @deprecated Use wathPath */
+  integrationsPath: string;
 }
 
 export interface OnboardingOptions {
@@ -82,14 +84,14 @@ function resolveStandardForSpec(
 }
 
 /**
- * Compose onboarding context from WATCH_INTEGRATIONS.json and the standards registry.
+ * Compose onboarding context from wath.json and the standards registry.
  */
 export function composeOnboardingContext(
   intent: OnboardingIntent
 ): OnboardingContext {
   const repoRoot = resolveRepoRoot();
-  const integrationsPath = resolveIntegrationsPath(intent);
-  const spec = parseIntegrationsSpec(integrationsPath);
+  const wathPath = resolveWathPath(intent);
+  const spec = parseWathSpec(wathPath);
   const runtime = deriveRuntime(spec);
   const requestedStandardIds = listRequestedStandardIds(spec);
   const consumerRepoPath = intent.consumerRepoPath;
@@ -106,7 +108,8 @@ export function composeOnboardingContext(
   return {
     repoRoot,
     standard,
-    integrationsPath,
+    wathPath,
+    integrationsPath: wathPath,
     requestedStandardIds,
     runtime,
     consumerRepoPath,

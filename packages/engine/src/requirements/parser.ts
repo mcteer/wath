@@ -8,7 +8,7 @@ export const SERVICE_ALIASES: Record<string, string> = {
   "hashicorp-vault": "vault-dynamic-secrets",
 };
 
-export interface WathIntegrationsSpec {
+export interface WathSpec {
   repo: string;
   contact?: { team?: string; email?: string };
   stack: {
@@ -23,7 +23,10 @@ export interface WathIntegrationsSpec {
   raw: string;
 }
 
-/** @deprecated Use WathIntegrationsSpec — kept for transitional typing. */
+/** @deprecated Use WathSpec */
+export type WathIntegrationsSpec = WathSpec;
+
+/** @deprecated Use WathSpec — kept for transitional typing. */
 export interface RequirementsSlices {
   environment: Record<string, string>;
   intent: Record<string, string>;
@@ -51,10 +54,10 @@ export function normalizeServices(
   return out;
 }
 
-/** Parse and validate WATCH_INTEGRATIONS.json. */
-export function parseIntegrationsSpec(specPath: string): WathIntegrationsSpec {
+/** Parse and validate wath.json. Keys prefixed with _ (e.g. _instructions) are ignored. */
+export function parseWathSpec(specPath: string): WathSpec {
   if (!existsSync(specPath)) {
-    throw new Error(`Integration spec not found: ${specPath}`);
+    throw new Error(`wath.json not found: ${specPath}`);
   }
   const raw = readFileSync(specPath, "utf8");
   let data: unknown;
@@ -89,7 +92,7 @@ export function parseIntegrationsSpec(specPath: string): WathIntegrationsSpec {
 
   return {
     repo: doc.repo,
-    contact: doc.contact as WathIntegrationsSpec["contact"],
+    contact: doc.contact as WathSpec["contact"],
     stack: {
       runtime: stack.runtime,
       language: stack.language as string | undefined,
@@ -102,8 +105,11 @@ export function parseIntegrationsSpec(specPath: string): WathIntegrationsSpec {
   };
 }
 
+/** @deprecated Use parseWathSpec */
+export const parseIntegrationsSpec = parseWathSpec;
+
 /** List standard IDs requested in the spec (registration order preserved). */
-export function listRequestedStandardIds(spec: WathIntegrationsSpec): string[] {
+export function listRequestedStandardIds(spec: WathSpec): string[] {
   return Object.keys(spec.services);
 }
 
@@ -122,7 +128,7 @@ export function deriveAuthMethod(runtime: string): string {
 }
 
 /** Derive runtime from parsed spec. */
-export function deriveRuntime(spec: WathIntegrationsSpec): string {
+export function deriveRuntime(spec: WathSpec): string {
   const runtime = spec.stack.runtime.trim().toLowerCase();
   if (["kubernetes", "nomad", "vm"].includes(runtime)) {
     return runtime;
@@ -132,20 +138,26 @@ export function deriveRuntime(spec: WathIntegrationsSpec): string {
   );
 }
 
-/** Resolve path to WATCH_INTEGRATIONS.json for an onboarding intent. */
-export function resolveIntegrationsPath(intent: OnboardingIntent): string {
-  if (intent.requirementsPath) {
-    return intent.requirementsPath;
+/** Resolve path to wath.json for an onboarding intent. */
+export function resolveWathPath(intent: OnboardingIntent): string {
+  if (intent.wathPath) {
+    return intent.wathPath;
   }
   if (intent.integrationsPath) {
     return intent.integrationsPath;
   }
-  return `${intent.consumerRepoPath}/WATCH_INTEGRATIONS.json`;
+  if (intent.requirementsPath) {
+    return intent.requirementsPath;
+  }
+  return `${intent.consumerRepoPath}/wath.json`;
 }
 
-/** @deprecated Use parseIntegrationsSpec */
+/** @deprecated Use resolveWathPath */
+export const resolveIntegrationsPath = resolveWathPath;
+
+/** @deprecated Use parseWathSpec */
 export function parseRequirements(path: string): RequirementsSlices {
-  const spec = parseIntegrationsSpec(path);
+  const spec = parseWathSpec(path);
   const primary = Object.values(spec.services)[0] ?? {};
   const constraints = primary.constraints
     ? Object.entries(primary.constraints as Record<string, unknown>).map(
@@ -167,7 +179,5 @@ export function parseRequirements(path: string): RequirementsSlices {
   };
 }
 
-/** @deprecated Use resolveIntegrationsPath */
-export function resolveRequirementsPath(intent: OnboardingIntent): string {
-  return resolveIntegrationsPath(intent);
-}
+/** @deprecated Use resolveWathPath */
+export const resolveRequirementsPath = resolveWathPath;

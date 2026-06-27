@@ -2,7 +2,7 @@
 description: >
   The step-by-step operating procedure for a Wath cloud agent executing an onboarding run.
   Use this whenever onboarding an application to a platform service via Wath, processing
-  WATCH_INTEGRATIONS.json, or executing any stage of the Wath process flow (detect, compose,
+  wath.json, or executing any stage of the Wath process flow (detect, compose,
   parameterize, render, verify, open PR). Standard-specific rules live in the governing SKILL
   and the glob-scoped rule under .cursor/rules/standards/.
 globs:
@@ -15,14 +15,14 @@ Execute the onboarding as ordered stages. **Do not skip ahead.** Each stage has 
 done (DoD); if you cannot meet it, stop and report rather than proceeding.
 
 This flow applies to **first onboarding and every re-run** — the user may update
-`WATCH_INTEGRATIONS.json` (new runtime, new services, validation feedback) and submit again;
+`wath.json` (new runtime, new services, validation feedback) and submit again;
 integrate against the **current** spec and repo state.
 
 The **governing standard** is named in the onboarding prompt (SKILL.md under `standards/`).
 All artifact paths, rules, and anti-patterns come from that standard — not from this file.
 
 ## Stage 1 — Detect
-Read the repo and `WATCH_INTEGRATIONS.json`. From `stack` determine runtime, applications, and
+Read the repo and `wath.json`. From `stack` determine runtime, applications, and
 environments. From `services` determine which platform integrations are requested. Identify
 anti-patterns the standard flags (e.g. static credentials).
 
@@ -53,7 +53,7 @@ Run the standard's conformance gate (`conformance/verify.sh`).
 **DoD:** gate passes. Hard stop on failure — fix and re-verify; never weaken checks.
 
 ## Stage 6 — Open PR
-Open one PR (`autoCreatePR`) to the `repo` in WATCH_INTEGRATIONS.json. PR description MUST follow
+Open one PR (`autoCreatePR`) to the `repo` in wath.json. PR description MUST follow
 the onboarding PR template — complete every section.
 
 **DoD:** PR is reviewable against evidence. Then stop — merge is human.

@@ -1,0 +1,55 @@
+{
+  "_instructions": {
+    "overview": "Copy this file to wath.json in your repository root, fill in the fields below, and commit. Wath discovers wath.json, validates it, and opens PRs with compliant platform integrations. Re-submit whenever your stack or service needs change.",
+    "steps": [
+      "Copy: cp wath.json.example wath.json",
+      "Set repo to the Git URL where Wath should open pull requests.",
+      "Describe your app under stack — runtime (kubernetes | nomad | vm) and at least one entry in stack.applications (name → plain-language purpose).",
+      "List platform integrations under services — use a standard ID as the key, or a shorthand alias (see available_standards). Start minimal (e.g. \"services\": [\"vault-dynamic-secrets\"]) and add per-service config as Wath or your SME requests it.",
+      "Leave feedback as {} on first submit; Wath writes validation results there after runs.",
+      "Run: wath onboard . (from your repo root, or point Wath at your repo URL)."
+    ],
+    "available_standards": [
+      {
+        "id": "vault-dynamic-secrets",
+        "aliases": ["vault", "hashicorp-vault"],
+        "platform_service": "HashiCorp Vault",
+        "summary": "Dynamic database credentials — replaces static DSNs/passwords with Vault-issued, lease-bound secrets.",
+        "runtimes": ["kubernetes", "nomad", "vm"]
+      }
+    ],
+    "discover_more": "Standards are registered in the Wath marketplace catalog (standards/registry.yaml). Run `wath list` against your Wath installation to see what is enabled in your environment.",
+    "note": "Keys prefixed with _ are documentation/metadata. Wath ignores them during onboarding; you may remove _instructions from wath.json once you are familiar with the format."
+  },
+  "version": 1,
+  "repo": "https://github.com/org/my-app",
+  "contact": {
+    "team": "my-team",
+    "email": "team@example.com"
+  },
+  "stack": {
+    "runtime": "kubernetes",
+    "language": "Go 1.22",
+    "environments": ["dev", "prod"],
+    "applications": {
+      "my-service": "Describe what this app does in plain language"
+    }
+  },
+  "services": {
+    "vault-dynamic-secrets": {
+      "datastore": "postgres",
+      "access": "read+write to application schema",
+      "environments": ["dev", "prod"],
+      "kubernetes": {
+        "namespaces": ["my-ns-dev", "my-ns-prod"],
+        "service_accounts": ["my-service"],
+        "secret_delivery": "vso"
+      },
+      "constraints": {
+        "caches_connection_at_boot": false,
+        "connection_pooler": null
+      }
+    }
+  },
+  "feedback": {}
+}

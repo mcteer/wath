@@ -1,4 +1,5 @@
 {
+  "version": 1,
   "repo": "https://github.com/org/payments-api",
   "contact": {
     "team": "payments",

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import type { OnboardingContext } from "../onboarding/pipeline.js";
-import { deriveAuthMethod, parseIntegrationsSpec } from "../requirements/parser.js";
+import { deriveAuthMethod, parseWathSpec } from "../requirements/parser.js";
 import {
   artifactChecklistMarkdown,
   goldenReferenceLines,
@@ -12,7 +12,7 @@ import { prSubmissionInstructions } from "./pr-template.js";
 
 /** Build the cloud agent onboarding prompt from composed context. */
 export function buildOnboardingPrompt(context: OnboardingContext): string {
-  const spec = parseIntegrationsSpec(context.integrationsPath);
+  const spec = parseWathSpec(context.wathPath);
   const standard = context.standard;
   const skillRel = standardSkillRepoPath(standard);
   const verifyScript = standardVerifyRepoPath(standard);
@@ -32,12 +32,12 @@ Load the governing standard at \`${skillRel}\`.
 - **Auth method (from spec):** ${authMethod}
 - **Standard (this run):** ${standard.entry.id} v${standard.entry.version} (rules: ${ruleList})
 - **All requested services:** ${context.requestedStandardIds.join(", ") || "(none)"}
-- **Spec file:** ${context.integrationsPath}
+- **Spec file:** ${context.wathPath}
 - **Consumer path:** ${context.consumerRepoPath}
 - **Consumer root:** ${context.consumerRoot}
 - **Target repo:** ${spec.repo}
 
-## WATCH_INTEGRATIONS.json (full spec)
+## wath.json (full spec)
 
 \`\`\`json
 ${JSON.stringify(
@@ -66,7 +66,7 @@ ${goldenReferenceLines(standard)}
 
 ## Your mission
 
-1. **Detect** — read the repo and WATCH_INTEGRATIONS.json; identify anti-patterns the standard flags.
+1. **Detect** — read the repo and wath.json; identify anti-patterns the standard flags.
 2. **Parameterize** — emit \`integration.params.json\` (schema-valid) before any rendered config.
 3. **Render** all artifacts from params; match paths in the standard's artifact layout (SKILL §2).
 4. **Verify** — hard stop on failure:
