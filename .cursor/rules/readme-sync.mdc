@@ -1,0 +1,37 @@
+---
+description: >-
+  Keep README.md accurate whenever Wath behavior, CLI, layout, or onboarding
+  flow changes. Apply on every contribution to this repo.
+globs:
+alwaysApply: true
+---
+
+# README sync
+
+When you change Wath in ways that affect how someone **uses, runs, or extends** the project, update [README.md](../../README.md) in the **same PR** before finishing.
+
+## Update README when you change
+
+- CLI commands, flags, or defaults (`packages/engine/src/cli/`)
+- Onboarding lifecycle phases, MCP tools, or state ledger layout
+- `wath.json` / consumer template contract or install path
+- Project layout (new packages, top-level dirs, moved docs)
+- Quick start or environment variables required to run demos
+- Core invariants or the high-level product story
+
+## What to update in README
+
+1. **How it works** — phase table or flow if orchestration changed
+2. **Quick start** — copy-paste commands that actually work after your change
+3. **CLI reference** — add/rename/remove commands
+4. **Project layout** — tree matches repo root
+5. **Documentation links** — new or moved docs under `docs/`
+
+## When README alone is not enough
+
+- Deep procedural detail → [docs/onboarding/lifecycle.md](../../docs/onboarding/lifecycle.md) or [CONTRIBUTING.md](../../CONTRIBUTING.md)
+- Consumer/app-repo specifics → [templates/consumer/README.md](../../templates/consumer/README.md)
+
+## PR checklist
+
+If behavior changed and README was not updated, the change is incomplete.

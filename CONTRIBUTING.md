@@ -80,6 +80,18 @@ Work in `packages/engine/`. Keep standard-specific logic in `standards/`, not in
 
 See [docs/extensions/README.md](./docs/extensions/README.md) for extension seams and prepped insurance deltas.
 
+### README maintenance (required)
+
+**[README.md](./README.md) is the front door.** Update it in the same PR whenever your change affects:
+
+- CLI commands, flags, or entry points
+- Onboarding lifecycle, MCP tools, or `state/applications/` layout
+- `wath.json` / consumer template install flow
+- Project layout, quick start, or required environment variables
+- The high-level “how Wath works” story
+
+Keep deep detail in `docs/`; keep README accurate, concise, and runnable. See [.cursor/rules/readme-sync.mdc](./.cursor/rules/readme-sync.mdc).
+
 ### Consumer templates & examples
 
 - **Templates** (`templates/consumer/`) — artifacts teams install in their repos
@@ -144,6 +156,7 @@ Edit this section when changing the template, then run `./scripts/sync-pr-templa
 - [ ] Conformance tests follow 1:1 rule→test naming (e.g. `test_VDS_003_…`)
 - [ ] No real secrets, credentials, or environment-specific tokens committed
 - [ ] Documentation updated where behavior changed
+- [ ] [README.md](./README.md) updated if CLI, lifecycle, layout, or quick start changed
 
 <!-- pr-template-end -->
 
