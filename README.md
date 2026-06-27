@@ -76,7 +76,15 @@ See [Consumer templates](./templates/consumer/README.md) and [`wath.schema.json`
 
 ### 2. Connect Wath in Cursor
 
-Open your **app repo** in Cursor and add `.cursor/mcp.json`. Point at the **wath-core MCP host** — no local Wath clone required:
+Install the consumer template (copies `.cursor/mcp.json` and **syncs MCP headers from `wath.json`**):
+
+```bash
+/path/to/wath/scripts/install-consumer-template.sh .
+# or after wath.json exists:
+node /path/to/wath/scripts/sync-consumer-mcp.js .
+```
+
+Minimal `.cursor/mcp.json` (only auth — repo identity comes from `wath.json`):
 
 ```json
 {
@@ -91,7 +99,7 @@ Open your **app repo** in Cursor and add `.cursor/mcp.json`. Point at the **wath
 }
 ```
 
-Use `127.0.0.1` (not `localhost`) for local Podman. The bearer token must match `WATH_TOKEN` in `deploy/.env` — Cursor requires this header on HTTP MCP URLs (otherwise it triggers a broken OAuth flow and fails with `net::ERR_FAILED`).
+Use `127.0.0.1` (not `localhost`) for local Podman. The bearer token must match `WATH_TOKEN` in `deploy/.env`.
 
 Reload MCP in Cursor. See [Cursor Automation](./docs/onboarding/cursor-automation.md).
 
@@ -99,21 +107,29 @@ Reload MCP in Cursor. See [Cursor Automation](./docs/onboarding/cursor-automatio
 
 In Cursor chat:
 
-> **Run wath.onboard for this repository.**
+> **Run wath.onboard**
 
-Or via CLI / wath-core API:
+The agent reads **`wath.json` → `repo`** and calls Wath. No paths, no duplicate URLs. Wath chains **integrate → validate** and opens an integration PR on success.
+
+Or via REST:
 
 ```bash
-# Dry-run (phase + prompt, no agent)
-curl -s -X POST http://localhost:8080/api/v1/lifecycle \
-  -H 'content-type: application/json' \
-  -d '{"consumerPath":"examples/consumer-demo"}'
+curl -s -X POST http://127.0.0.1:8080/api/v1/lifecycle \
+  -H 'Authorization: Bearer dev-local-token' \
+  -H 'Content-Type: application/json' \
+  -d '{"repo":"https://github.com/org/my-app","launch":false}'
 
-# Live launch (needs CURSOR_API_KEY + repo URL in deploy/.env or shell)
+# Wath operators: dry-run against bundled demo (local path under WATH_ROOT)
+curl -s -X POST http://127.0.0.1:8080/api/v1/lifecycle \
+  -H 'Authorization: Bearer dev-local-token' \
+  -H 'Content-Type: application/json' \
+  -d '{"consumerPath":"examples/consumer-demo","launch":false}'
+
+# Live launch (needs CURSOR_API_KEY in deploy/.env)
 ./scripts/demo-live-launch.sh /path/to/your-app
 ```
 
-With `launch: true`, Wath runs cloud agents that analyze your repo and open PRs.
+With `launch: true`, Wath runs cloud agents against your GitHub repo and opens PRs there.
 
 ### 4. Review and merge PRs
 

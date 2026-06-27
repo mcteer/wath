@@ -10,9 +10,15 @@ Use Cursor Automations to trigger onboarding and poll PR merge status without a 
 
 ## MCP configuration (remote host)
 
-Consumer repos point at the **wath-core HTTP endpoint** — the same pattern as any remote MCP service (Notion, Linear, etc.). No local Wath clone or filesystem paths on the developer machine.
+Consumer repos point at the **wath-core HTTP endpoint**. Application identity lives in **`wath.json` → `repo`** only.
 
-In your app repo `.cursor/mcp.json`:
+After adding `wath.json`, sync MCP config (copies `repo` into headers automatically):
+
+```bash
+node /path/to/wath/scripts/sync-consumer-mcp.js .
+```
+
+Minimal `.cursor/mcp.json`:
 
 ```json
 {
@@ -20,15 +26,12 @@ In your app repo `.cursor/mcp.json`:
     "wath": {
       "url": "http://127.0.0.1:8080/mcp",
       "headers": {
-        "Authorization": "Bearer dev-local-token",
-        "X-Wath-Consumer-Repo": "https://github.com/YOUR_ORG/YOUR_APP"
+        "Authorization": "Bearer dev-local-token"
       }
     }
   }
 }
 ```
-
-**`X-Wath-Consumer-Repo`** tells wath-core which GitHub repo is calling — wath-core fetches `wath.json` from that repo (no wath-side filesystem mount required). Set it to the same URL as the `repo` field in your `wath.json`. On materialize, the engine writes this header into `.cursor/mcp.json` automatically.
 
 **Cursor requires the `Authorization` header** on HTTP MCP URLs. Without it, Cursor incorrectly initiates an OAuth flow against localhost and the connection fails with `net::ERR_FAILED` ([known Cursor bug](https://forum.cursor.com/t/remote-mcp-server-on-localhost-fails/157307)). The token must match `WATH_TOKEN` on wath-core (`deploy/.env`).
 
@@ -44,7 +47,7 @@ For non-dev environments, replace `dev-local-token` with your issued bearer toke
 
 During onboarding materialization (`wath onboard --materialize`), the engine writes this file from `WATH_MCP_URL` in the Wath deploy environment.
 
-In Cursor Desktop, ask the agent: **"Run wath.onboard"** — no JSON arguments when `X-Wath-Consumer-Repo` is set (or when `WATH_DEFAULT_CONSUMER_REPO` is configured on wath-core).
+In Cursor Desktop, ask the agent: **"Run wath.onboard"** — the agent reads `wath.json` and passes `repo`. No duplicate URLs.
 
 Set `WATH_MCP_URL` when launching cloud agents from the engine so remote agents reach the same host.
 
@@ -52,7 +55,7 @@ Set `WATH_MCP_URL` when launching cloud agents from the engine so remote agents 
 
 **Trigger:** Git push to default branch when `wath.json` changes.
 
-**Action:** MCP → Wath server → tool `wath.onboard` with `launch: true`. The MCP client should send `X-Wath-Consumer-Repo: https://github.com/org/app` (or pass `target` / `repoUrl` in the tool args).
+**Action:** MCP → Wath server → tool `wath.onboard` with `{ "repo": "<wath.json repo field>", "launch": true }`.
 
 **Prompt hint for the automation agent:**
 

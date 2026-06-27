@@ -31,6 +31,10 @@ cp "${TEMPLATE}/.cursor/rules/standards/"*.mdc "${TARGET}/.cursor/rules/standard
 cp "${TEMPLATE}/.github/PULL_REQUEST_TEMPLATE/wath-onboarding.md" \
   "${TARGET}/.github/PULL_REQUEST_TEMPLATE/wath-onboarding.md"
 
+if [ -f "${TARGET}/wath.json" ]; then
+  node "${REPO_ROOT}/scripts/sync-consumer-mcp.js" "${TARGET}" || true
+fi
+
 echo "Installed consumer template into: ${TARGET}"
 echo "  - wath.json.example"
 if [ "${WATH_JSON_SEEDED}" = "1" ]; then

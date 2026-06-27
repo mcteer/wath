@@ -1,0 +1,29 @@
+---
+description: Remove dry-run validation artifacts after testing wath-core
+alwaysApply: true
+---
+
+# Dry-run cleanup (agent-owned)
+
+After using **dry-run** (`launch: false`) to validate wath-core, MCP, or lifecycle behavior, **delete any artifacts you created** before ending the turn.
+
+## What to remove
+
+- `state/applications/<org>/<repo>.yaml` — ledger files from live launches or pre-fix dry-runs (only `.gitkeep` should remain under `state/applications/`)
+- Empty `state/applications/<org>/` directories left after deleting yaml files
+- Accidental `wath.json` `feedback` entries written during local validate dry-runs
+- Materialized `.cursor/` or `.github/` trees under `examples/` unless the change was intentional
+
+## What to keep
+
+- Intentional code, doc, and template changes
+- Ledger files from a **real** onboarding the user asked you to run (`launch: true`)
+
+## When
+
+Run cleanup **immediately after** the dry-run curl/MCP check confirms what you needed — do not leave demo-app or mcteer/demo-app state sitting in the repo.
+
+```bash
+rm -f state/applications/*/*.yaml
+find state/applications -mindepth 1 -type d -empty -delete
+```

@@ -24,3 +24,14 @@ onboarding & conformance engine. When you act as a Wath agent, these hold at all
 
 Adherence is not assumed — it is enforced downstream by the conformance gate
 (`@standards/security/vault-dynamic-secrets/conformance/`). Write as if every output will be checked, because it will be.
+
+## Wath MCP (onboard / status)
+
+The application identity for Wath is **`wath.json` → `repo`** — never ask the user for a repo URL or consumer path.
+
+When the user asks to run **`wath.onboard`**, **`wath.status`**, or similar Wath MCP tools:
+
+1. Read `wath.json` at the repo root.
+2. Call the tool with `{ "repo": "<value of the repo field>" }` (add `"launch": true` for live onboard unless dry-run is requested).
+
+If `.cursor/mcp.json` is missing `X-Wath-Consumer-Repo`, run `node /path/to/wath/scripts/sync-consumer-mcp.js .` from this repo (or re-run `install-consumer-template.sh`) — it copies `repo` into the MCP header automatically.

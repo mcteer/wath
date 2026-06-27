@@ -8,10 +8,12 @@ import { resolveRepoRoot } from "../standards/registry.js";
 
 export interface ResolveConsumerInput {
   consumerRepoPath?: string;
+  /** Repo URL from wath.json — preferred MCP tool argument. */
+  repo?: string;
   /** Repo URL, org/repo app id, or local path under WATH_ROOT. */
   target?: string;
   repoUrl?: string;
-  /** From X-Wath-Consumer-Repo MCP/HTTP header — the app repo declaring itself. */
+  /** Auto-set from wath.json via sync-consumer-mcp.js — not user-facing. */
   consumerRepoHeader?: string;
 }
 
@@ -83,6 +85,7 @@ function findLocalMountForRepo(
 
 function resolveRepoUrlFromInput(input: ResolveConsumerInput): string | undefined {
   const explicit =
+    input.repo?.trim() ||
     input.consumerRepoHeader?.trim() ||
     input.target?.trim() ||
     input.repoUrl?.trim();
@@ -121,7 +124,7 @@ export async function resolveConsumer(
 
   if (!repoUrl) {
     throw new Error(
-      "Application repo required. Set X-Wath-Consumer-Repo on the Wath MCP client, pass target/repoUrl, or set WATH_DEFAULT_CONSUMER_REPO."
+      'Application repo required — read wath.json and pass the "repo" field to wath.onboard (or run scripts/sync-consumer-mcp.js to sync MCP headers from wath.json).'
     );
   }
 
