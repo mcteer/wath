@@ -1,0 +1,25 @@
+name: Engine CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/engine/**"
+      - "package.json"
+  pull_request:
+    paths:
+      - "packages/engine/**"
+      - "package.json"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run build --workspace=@wath/engine
+      - run: npm run typecheck --workspace=@wath/engine

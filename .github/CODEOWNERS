@@ -1,0 +1,5 @@
+# Repository-wide ownership
+* @maintainers
+
+/standards/security/ @security-engineering
+/packages/engine/ @maintainers

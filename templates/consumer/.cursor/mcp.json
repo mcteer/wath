@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "wath": {
+      "url": "https://wath.internal/mcp",
+      "headers": {
+        "Authorization": "Bearer ${WATH_TOKEN}"
+      }
+    }
+  }
+}

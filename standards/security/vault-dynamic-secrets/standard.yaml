@@ -1,0 +1,21 @@
+id: vault-dynamic-secrets
+version: 3
+owner: security-engineering
+rule_prefix: VDS
+rules:
+  - VDS-001
+  - VDS-002
+  - VDS-003
+  - VDS-004
+  - VDS-005
+  - VDS-006
+  - VDS-007
+  - VDS-008
+schema: schema/integration.params.schema.json
+conformance_entry: conformance/verify.sh
+runtimes:
+  - kubernetes
+  - nomad
+  - vm
+services:
+  - hashicorp-vault

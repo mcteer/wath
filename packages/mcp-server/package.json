@@ -1,0 +1,16 @@
+{
+  "name": "@wath/mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Wath MCP server — HTTP transport for wath.onboard, wath.status tools",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

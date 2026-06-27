@@ -1,0 +1,24 @@
+{
+  "name": "@wath/engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Wath SDK orchestrator — selects standards, runs onboarding, invokes verification",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "wath": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test dist/**/*.test.js 2>/dev/null || echo 'No tests yet'"
+  },
+  "dependencies": {
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

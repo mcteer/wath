@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-api
+  labels:
+    app: orders-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orders-api
+  template:
+    metadata:
+      labels:
+        app: orders-api
+    spec:
+      serviceAccountName: orders-api
+      containers:
+        - name: orders-api
+          image: orders-api:demo
+          env:
+            # Tier-1: static credential — Wath onboarding replaces this with dynamic secrets
+            - name: DATABASE_URL
+              value: "postgres://demo:demo@postgres:5432/orders"

@@ -1,0 +1,33 @@
+# Re-run the vault-dynamic-secrets conformance gate in the team's real environment (Tier-2).
+# Installed by Wath onboarding into consumer repos from this template.
+
+name: Vault integration verify
+
+on:
+  pull_request:
+    paths:
+      - "vault/**"
+      - "k8s/**"
+      - "integration.params.json"
+  push:
+    branches: [main]
+    paths:
+      - "vault/**"
+      - "k8s/**"
+      - "integration.params.json"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: pip install pytest jsonschema python-hcl2 pyyaml
+      - name: Run conformance gate
+        run: |
+          # Point to the standard in the Wath repo or a vendored copy
+          WATH_STANDARD_ROOT="${WATH_STANDARD_ROOT:-./standards/security/vault-dynamic-secrets}"
+          bash "${WATH_STANDARD_ROOT}/conformance/verify.sh"

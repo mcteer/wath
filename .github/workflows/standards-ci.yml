@@ -1,0 +1,43 @@
+name: Standards CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "standards/**"
+  pull_request:
+    paths:
+      - "standards/**"
+
+jobs:
+  compile-conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Python deps
+        run: pip install pytest jsonschema python-hcl2 pyyaml
+      - name: Verify conformance suites compile
+        run: |
+          for test_file in standards/**/conformance/test_conformance.py; do
+            [[ "$test_file" == *"/_template/"* ]] && continue
+            echo "Compiling: $test_file"
+            python -m py_compile "$test_file"
+          done
+      - name: Validate registry
+        run: |
+          python3 -c "
+          import yaml, sys
+          from pathlib import Path
+          root = Path('standards')
+          reg = yaml.safe_load((root / 'registry.yaml').read_text())
+          for entry in reg['standards']:
+              p = root / entry['path']
+              assert (p / 'SKILL.md').exists(), f'Missing SKILL.md for {entry[\"id\"]}'
+              assert (p / 'standard.yaml').exists(), f'Missing standard.yaml for {entry[\"id\"]}'
+              meta = yaml.safe_load((p / 'standard.yaml').read_text())
+              assert meta['id'] == entry['id'], f'ID mismatch for {entry[\"id\"]}'
+          print('Registry OK:', len(reg['standards']), 'standards')
+          "
