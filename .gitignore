@@ -21,3 +21,7 @@ venv/
 # Materialized by wath onboard --materialize (do not commit)
 examples/consumer-demo/.cursor/
 examples/consumer-demo/.github/
+
+# Runtime onboarding ledger (created on launch only — not committed)
+state/applications/**/*
+!state/applications/.gitkeep

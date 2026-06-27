@@ -13,18 +13,22 @@ export const WATH_TOOL_DEFINITIONS = [
   {
     name: "wath.onboard",
     description:
-      "Onboard an app to Wath (wath.json). Call with no arguments from the consumer repo (X-Wath-Consumer-Repo header) to run integrate+validate via Cloud Agents and open an integration PR.",
+      "Onboard this app to Wath. Read wath.json and pass repo (the repo field). Chains integrate+validate via Cloud Agents and opens an integration PR. Example: { \"repo\": \"https://github.com/org/app\" }",
     inputSchema: {
       type: "object",
       properties: {
+        repo: {
+          type: "string",
+          description: "Required unless MCP headers were synced from wath.json. The repo field from wath.json.",
+        },
         consumerPath: {
           type: "string",
           description:
-            "Optional. Local consumer checkout under WATH_ROOT (verify/materialize only). Cloud onboarding uses X-Wath-Consumer-Repo or target.",
+            "Optional. Local consumer checkout under WATH_ROOT (verify/materialize only).",
         },
         target: {
           type: "string",
-          description: "Optional. Repo URL, org/repo app id, or consumer path when multiple apps exist.",
+          description: "Deprecated — use repo (from wath.json).",
         },
         wathPath: { type: "string", description: "Alternate path to wath.json" },
         launch: {
@@ -40,7 +44,7 @@ export const WATH_TOOL_DEFINITIONS = [
           description: "Force phase: discover, enrich_manifest, integrate, validate, await_merge",
         },
         standardId: { type: "string", description: "Standard ID for integrate/validate" },
-        repoUrl: { type: "string", description: "Override GitHub repo URL for cloud agent" },
+        repoUrl: { type: "string", description: "Deprecated — use repo (from wath.json)." },
         throughValidate: {
           type: "boolean",
           description:
@@ -52,13 +56,17 @@ export const WATH_TOOL_DEFINITIONS = [
   {
     name: "wath.status",
     description:
-      "Return onboarding lifecycle state. Omit target when X-Wath-Consumer-Repo is set on the MCP client.",
+      "Return onboarding lifecycle state. Read wath.json and pass repo (the repo field).",
     inputSchema: {
       type: "object",
       properties: {
+        repo: {
+          type: "string",
+          description: "The repo field from wath.json.",
+        },
         target: {
           type: "string",
-          description: "Optional. Consumer path, repo URL, or org/repo application id.",
+          description: "Deprecated — use repo (from wath.json).",
         },
         wathPath: { type: "string" },
       },
@@ -93,6 +101,13 @@ export const WATH_TOOL_DEFINITIONS = [
 
 export type WathToolName = (typeof WATH_TOOL_DEFINITIONS)[number]["name"];
 
+function repoFromArgs(args: Record<string, unknown>): string | undefined {
+  if (args.repo) return String(args.repo);
+  if (args.target) return String(args.target);
+  if (args.repoUrl) return String(args.repoUrl);
+  return getConsumerRepoHeader();
+}
+
 /** Execute a Wath MCP tool; returns JSON-serializable result or throws. */
 export async function executeWathTool(
   name: string,
@@ -102,8 +117,7 @@ export async function executeWathTool(
     case "wath.onboard": {
       const launch = args.launch !== false;
       const consumerPath = args.consumerPath ? String(args.consumerPath) : undefined;
-      const target = args.target ? String(args.target) : undefined;
-      const repoUrl = args.repoUrl ? String(args.repoUrl) : undefined;
+      const repo = repoFromArgs(args);
       return runLifecycle(
         {
           ...(consumerPath ? { consumerRepoPath: consumerPath } : {}),
@@ -115,17 +129,16 @@ export async function executeWathTool(
           dryRun: !launch,
           materialize: args.materialize === true,
           ...(args.phase ? { phase: args.phase as OnboardingPhase } : {}),
-          ...(repoUrl ? { repoUrl } : {}),
-          ...(target ? { target } : {}),
+          ...(repo ? { repo, target: repo } : {}),
           ...(args.throughValidate === false ? { throughValidate: false } : {}),
           consumerRepoHeader: getConsumerRepoHeader(),
         }
       );
     }
     case "wath.status": {
-      const target = args.target ? String(args.target) : undefined;
-      if (target) {
-        return getLifecycleStatus(target, args.wathPath ? String(args.wathPath) : undefined);
+      const repo = repoFromArgs(args);
+      if (repo) {
+        return getLifecycleStatus(repo, args.wathPath ? String(args.wathPath) : undefined);
       }
       const resolved = await resolveConsumer({
         consumerRepoHeader: getConsumerRepoHeader(),

@@ -3,12 +3,8 @@
     "wath": {
       "url": "http://127.0.0.1:8080/mcp",
       "headers": {
-        "Authorization": "Bearer dev-local-token",
-        "X-Wath-Consumer-Repo": "https://github.com/YOUR_ORG/YOUR_APP"
+        "Authorization": "Bearer dev-local-token"
       }
-    },
-    "hashicorp-docs": {
-      "url": "https://docs.hashicorp.com/mcp"
     }
   }
 }

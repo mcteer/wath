@@ -4,7 +4,6 @@ import { composeOnboardingContext } from "../onboarding/pipeline.js";
 import { materializeConsumerConfig, resolveConsumerRepoUrl } from "../onboarding/materialize.js";
 import { resolveConsumer } from "../onboarding/resolve-consumer.js";
 import { parseWathSpec, resolveWathPath } from "../requirements/parser.js";
-import { writeWathFeedback } from "../requirements/writer.js";
 import { resolveRepoRoot, resolveStandard } from "../standards/registry.js";
 import { runConformanceGate } from "../verify/runner.js";
 import type { OnboardingIntent } from "../types.js";
@@ -14,7 +13,7 @@ import {
   isManifestComplete,
   nextPendingStandardId,
 } from "./manifest.js";
-import { recordAgentPr, markVerifyResult } from "./merge.js";
+import { recordAgentPr } from "./merge.js";
 import {
   buildIntegratePrompt,
   buildManifestEnrichmentPrompt,
@@ -92,7 +91,8 @@ export async function runLifecycle(
   const resolvedConsumer = await resolveConsumer(
     {
       consumerRepoPath: intent.consumerRepoPath,
-      target: options.target ?? options.repoUrl,
+      repo: options.repo,
+      target: options.target ?? options.repoUrl ?? options.repo,
       repoUrl: options.repoUrl,
       consumerRepoHeader: options.consumerRepoHeader,
     },
@@ -110,7 +110,13 @@ export async function runLifecycle(
   };
 
   const spec = resolvedConsumer.wathSpec;
+  const dryRun = options.dryRun ?? !options.launch;
   const { appId, state } = loadOrInitState(repoRoot, spec, wathPath);
+
+  const persistState = (): void => {
+    if (dryRun) return;
+    saveApplicationState(repoRoot, appId, state);
+  };
 
   const phase = resolveEffectivePhase(state, spec, options.phase);
   state.phase = phase;
@@ -127,7 +133,7 @@ export async function runLifecycle(
       );
     }
     if (!standardId) {
-      saveApplicationState(repoRoot, appId, state);
+      persistState();
       return {
         appId,
         phase: allIntegrationsMerged(spec, state.integrations) ? "compliant" : "await_merge",
@@ -161,7 +167,7 @@ export async function runLifecycle(
   }
 
   appendHistory(state, `phase_${phase}`);
-  saveApplicationState(repoRoot, appId, state);
+  persistState();
 
   const result: LifecycleResult = {
     appId,
@@ -187,18 +193,20 @@ export async function runLifecycle(
     });
   }
 
-  const dryRun = options.dryRun ?? !options.launch;
-
   if (dryRun && phase === "validate" && standardId && resolvedConsumer.wathPath) {
     const standard = resolveStandard(repoRoot, standardId);
     const gate = runConformanceGate(standard, context.consumerRoot);
     if (!gate.passed) {
-      writeWathFeedback(resolvedConsumer.wathPath, standardId, {
-        verify_failed: true,
-        output: gate.output.slice(0, 4000),
-      });
-      markVerifyResult(appId, standardId, false);
-      result.state = loadApplicationState(repoRoot, appId)!;
+      result.state = {
+        ...state,
+        integrations: {
+          ...state.integrations,
+          [standardId]: {
+            ...state.integrations[standardId],
+            last_verify: "failed",
+          },
+        },
+      };
     }
   }
 
@@ -232,7 +240,7 @@ export async function runLifecycle(
   } else if (phase === "integrate") {
     state.phase = "validate";
     appendHistory(state, "integrate_complete", standardId);
-    saveApplicationState(repoRoot, appId, state);
+    persistState();
     result.state = state;
   }
 

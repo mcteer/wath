@@ -56,9 +56,11 @@ export interface LifecycleOptions {
   materialize?: boolean;
   forceMaterialize?: boolean;
   repoUrl?: string;
+  /** From wath.json via MCP tool args or auto-synced MCP header. */
+  repo?: string;
   /** Repo URL, org/repo, or consumer path when consumerRepoPath is omitted. */
   target?: string;
-  /** From X-Wath-Consumer-Repo — the app repo calling Wath MCP. */
+  /** Auto-synced from wath.json — not user-facing. */
   consumerRepoHeader?: string;
   /** When launch=true, run validate after integrate in the same call (default: true). */
   throughValidate?: boolean;

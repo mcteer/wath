@@ -35,31 +35,28 @@ export function buildMcpServers(config: WathConfig): Record<string, McpServerCon
   return servers;
 }
 
-/** Consumer-repo `.cursor/mcp.json` shape for materialization. */
+/** Consumer-repo `.cursor/mcp.json` — Wath only. Cloud Agents get auxiliary MCP via wath-core at launch. */
 export function buildConsumerMcpJson(
   config: WathConfig,
   consumerRepoUrl?: string
 ): {
   mcpServers: Record<string, { url: string; headers?: Record<string, string> }>;
 } {
-  const inline = buildMcpServers(config);
-  const mcpServers: Record<string, { url: string; headers?: Record<string, string> }> = {};
-
-  for (const [name, server] of Object.entries(inline)) {
-    if ("url" in server && server.url) {
-      mcpServers[name] = {
-        url: server.url,
-        ...(server.headers ? { headers: { ...server.headers } } : {}),
-      };
-    }
+  const url = config.wathMcpUrl ?? "http://127.0.0.1:8080/mcp";
+  const headers: Record<string, string> = {};
+  const token = process.env.WATH_TOKEN?.trim();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  } else {
+    headers.Authorization = "Bearer dev-local-token";
+  }
+  if (consumerRepoUrl) {
+    headers["X-Wath-Consumer-Repo"] = consumerRepoUrl;
   }
 
-  if (consumerRepoUrl && mcpServers.wath) {
-    mcpServers.wath.headers = {
-      ...mcpServers.wath.headers,
-      "X-Wath-Consumer-Repo": consumerRepoUrl,
-    };
-  }
-
-  return { mcpServers };
+  return {
+    mcpServers: {
+      wath: { url, headers },
+    },
+  };
 }
