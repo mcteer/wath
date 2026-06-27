@@ -13,7 +13,7 @@ export interface ResolveConsumerInput {
   /** Repo URL, org/repo app id, or local path under WATH_ROOT. */
   target?: string;
   repoUrl?: string;
-  /** Auto-set from wath.json via sync-consumer-mcp.js — not user-facing. */
+  /** Optional fallback when MCP client sends X-Wath-Consumer-Repo (not written to mcp.json). */
   consumerRepoHeader?: string;
 }
 
@@ -124,7 +124,7 @@ export async function resolveConsumer(
 
   if (!repoUrl) {
     throw new Error(
-      'Application repo required — read wath.json and pass the "repo" field to wath.onboard (or run scripts/sync-consumer-mcp.js to sync MCP headers from wath.json).'
+      'Application repo required — read wath.json and pass the "repo" field to wath.onboard.'
     );
   }
 

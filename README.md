@@ -76,15 +76,13 @@ See [Consumer templates](./templates/consumer/README.md) and [`wath.schema.json`
 
 ### 2. Connect Wath in Cursor
 
-Install the consumer template (copies `.cursor/mcp.json` and **syncs MCP headers from `wath.json`**):
+Install the consumer template (copies `.cursor/mcp.json` — Wath + auth only):
 
 ```bash
 /path/to/wath/scripts/install-consumer-template.sh .
-# or after wath.json exists:
-node /path/to/wath/scripts/sync-consumer-mcp.js .
 ```
 
-Minimal `.cursor/mcp.json` (only auth — repo identity comes from `wath.json`):
+`.cursor/mcp.json` never includes repo URLs — identity comes from `wath.json` when the agent calls Wath:
 
 ```json
 {
