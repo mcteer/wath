@@ -13,6 +13,7 @@ export interface MaterializeResult {
   filesWritten: string[];
 }
 
+/** Resolve absolute consumer app root within the Wath repo or external path. */
 export function resolveConsumerRoot(
   wathRoot: string,
   consumerRepoPath: string
@@ -20,6 +21,10 @@ export function resolveConsumerRoot(
   return resolve(wathRoot, consumerRepoPath);
 }
 
+/**
+ * Materialize consumer `.cursor` config from Wath templates + generated environment.
+ * Skips files that already exist unless force=true.
+ */
 export function materializeConsumerConfig(
   context: OnboardingContext,
   config: WathConfig,
@@ -54,6 +59,7 @@ export function materializeConsumerConfig(
     join(rulesDir, "wath-agent-process.mdc")
   );
 
+  // Standard-scoped agent rule (e.g. vault-dynamic-secrets.mdc)
   const ruleName =
     context.standard.metadata.onboarding?.consumer_rule ??
     context.standard.entry.id;
@@ -95,6 +101,7 @@ export function materializeConsumerConfig(
     filesWritten.push(mcpPath);
   }
 
+  // Copy SKILL into consumer-visible path for the cloud agent
   const skillLink = join(cursorDir, "skills");
   mkdirSync(skillLink, { recursive: true });
   const skillSrc = context.standard.skillPath;
@@ -107,6 +114,7 @@ export function materializeConsumerConfig(
   return { consumerRoot, filesWritten };
 }
 
+/** Extract repository URL from requirements or config. */
 export function resolveConsumerRepoUrl(
   context: OnboardingContext,
   config: WathConfig

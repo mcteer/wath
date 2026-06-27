@@ -9,10 +9,12 @@ import type {
   StandardRegistryEntry,
 } from "../types.js";
 
+/** Resolve the standards registry root relative to the repo. */
 export function resolveStandardsRoot(repoRoot: string): string {
   return join(repoRoot, "standards");
 }
 
+/** Load and parse standards/registry.yaml. */
 export function loadRegistry(repoRoot: string): StandardRegistry {
   const registryPath = join(resolveStandardsRoot(repoRoot), "registry.yaml");
   if (!existsSync(registryPath)) {
@@ -22,6 +24,7 @@ export function loadRegistry(repoRoot: string): StandardRegistry {
   return parseYaml(raw) as StandardRegistry;
 }
 
+/** Load standard.yaml metadata for a registry entry. */
 export function loadStandardMetadata(
   standardsRoot: string,
   entry: StandardRegistryEntry
@@ -34,6 +37,7 @@ export function loadStandardMetadata(
   return parseYaml(raw) as StandardMetadata;
 }
 
+/** Resolve a standard by ID from the registry. */
 export function resolveStandard(
   repoRoot: string,
   standardId: string
@@ -61,10 +65,12 @@ export function resolveStandard(
   };
 }
 
+/** List all standards registered in the marketplace catalog. */
 export function listStandards(repoRoot: string): StandardRegistryEntry[] {
   return loadRegistry(repoRoot).standards;
 }
 
+/** Find standards applicable to a given runtime (e.g. kubernetes). */
 export function findStandardsForRuntime(
   repoRoot: string,
   runtime: string
@@ -74,10 +80,12 @@ export function findStandardsForRuntime(
   );
 }
 
+/** Resolve the Wath repo root from cwd or WATH_ROOT env. */
 export function resolveRepoRoot(cwd = process.cwd()): string {
   if (process.env.WATH_ROOT) {
     return resolve(process.env.WATH_ROOT);
   }
+  // Walk up looking for standards/registry.yaml
   let dir = resolve(cwd);
   for (let i = 0; i < 10; i++) {
     if (existsSync(join(dir, "standards", "registry.yaml"))) {

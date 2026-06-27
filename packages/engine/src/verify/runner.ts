@@ -3,6 +3,10 @@ import { existsSync } from "node:fs";
 
 import type { ResolvedStandard, VerifyResult } from "../types.js";
 
+/**
+ * Invoke a standard's conformance/verify.sh against a consumer artifact root.
+ * Each standard ships its own gate; the engine does not embed rule logic.
+ */
 export function runConformanceGate(
   standard: ResolvedStandard,
   artifactRoot: string,

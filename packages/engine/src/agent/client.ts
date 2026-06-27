@@ -7,6 +7,7 @@ export interface AgentLaunchOptions {
   apiKey: string;
   prompt: string;
   config: WathConfig;
+  /** Cloud: GitHub repo URL. Local: workspace directory. */
   target: { mode: "cloud"; repoUrl: string } | { mode: "local"; cwd: string };
   autoCreatePR?: boolean;
   onEvent?: (event: AgentStreamEvent) => void;
@@ -38,6 +39,7 @@ function relayStreamEvent(event: unknown, onEvent?: (e: AgentStreamEvent) => voi
   }
 }
 
+/** Launch a Cursor agent (cloud or local) for onboarding. */
 export async function launchOnboardingAgent(
   options: AgentLaunchOptions
 ): Promise<AgentLaunchResult> {

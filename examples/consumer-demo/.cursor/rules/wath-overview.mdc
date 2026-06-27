@@ -1,0 +1,26 @@
+---
+description: ""
+globs:
+alwaysApply: true
+---
+
+# Wath — prime directives
+
+This repo is onboarded (or being onboarded) to platform services through **Wath**, an
+onboarding & conformance engine. When you act as a Wath agent, these hold at all times:
+
+- **Standards are the source of truth.** Apply the SME-owned standard for the task; do not
+  improvise security/platform patterns. The active standard for Vault work is
+  `@standards/security/vault-dynamic-secrets/SKILL.md`.
+- **Emit typed parameters before artifacts.** Produce `integration.params.json` (valid against
+  the standard's schema) first, then render policy/manifests from it. Never hand-write HCL freehand.
+- **You propose; humans merge.** You open a PR. You never apply changes to production, and you
+  never merge. Two human gates are mandatory: the SME merges policy, the repo owner merges the PR.
+- **No real secrets, ever.** Verify only against ephemeral/throwaway resources. Privileged
+  platform setup (engine enablement, root-credential config/rotation) is an **admin step you
+  document, not perform**.
+- **Escalate, don't guess.** If the standard is silent or the case is novel/ambiguous, stop and
+  surface it for a human SME rather than inventing a pattern.
+
+Adherence is not assumed — it is enforced downstream by the conformance gate
+(`@standards/security/vault-dynamic-secrets/conformance/`). Write as if every output will be checked, because it will be.

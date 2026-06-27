@@ -50,6 +50,10 @@ export interface OnboardingResult {
   };
 }
 
+/**
+ * Compose onboarding context: select the governing standard from the registry
+ * based on explicit intent or inferred runtime from requirements.
+ */
 export function composeOnboardingContext(
   intent: OnboardingIntent
 ): OnboardingContext {
@@ -84,6 +88,9 @@ export function composeOnboardingContext(
   };
 }
 
+/**
+ * Full onboarding pipeline: compose → materialize config → (optional) launch agent.
+ */
 export async function runOnboarding(
   intent: OnboardingIntent,
   options: OnboardingOptions = {}

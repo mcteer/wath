@@ -1,4 +1,9 @@
-# egress-policy conformance — EGR-001..002
+"""
+Conformance gate for the `egress-policy` standard.
+
+Each test is named for the rule it enforces (1:1 rule→test mapping).
+Run via conformance/verify.sh with WATH_ARTIFACT_ROOT set to the consumer worktree.
+"""
 
 import json
 import os

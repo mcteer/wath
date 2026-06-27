@@ -2,9 +2,11 @@ import { join } from "node:path";
 
 import type { ResolvedStandard } from "../types.js";
 
+/** Default PR template path when a standard does not override onboarding.pr_template. */
 export const DEFAULT_PR_TEMPLATE_REPO_PATH =
   ".github/PULL_REQUEST_TEMPLATE/wath-onboarding.md";
 
+/** Load onboarding.artifacts and related metadata from standard.yaml. */
 export function resolveOnboardingConfig(standard: ResolvedStandard) {
   const onboarding = standard.metadata.onboarding;
   if (!onboarding?.artifacts?.length) {
@@ -15,14 +17,17 @@ export function resolveOnboardingConfig(standard: ResolvedStandard) {
   return onboarding;
 }
 
+/** Repo-relative path to the governing SKILL.md. */
 export function standardSkillRepoPath(standard: ResolvedStandard): string {
   return join("standards", standard.entry.path, "SKILL.md");
 }
 
+/** Repo-relative path to the params schema. */
 export function standardSchemaRepoPath(standard: ResolvedStandard): string {
   return join("standards", standard.entry.path, standard.metadata.schema);
 }
 
+/** Repo-relative path to verify.sh. */
 export function standardVerifyRepoPath(standard: ResolvedStandard): string {
   return join(
     "standards",
@@ -31,11 +36,13 @@ export function standardVerifyRepoPath(standard: ResolvedStandard): string {
   );
 }
 
+/** Markdown checklist embedded in the agent onboarding prompt. */
 export function artifactChecklistMarkdown(standard: ResolvedStandard): string {
   const { artifacts } = resolveOnboardingConfig(standard);
   return artifacts.map((p) => `- [ ] \`${p}\``).join("\n");
 }
 
+/** PR template path inside the consumer repo. */
 export function prTemplateRepoPath(standard: ResolvedStandard): string {
   return (
     resolveOnboardingConfig(standard).pr_template ??
@@ -43,6 +50,7 @@ export function prTemplateRepoPath(standard: ResolvedStandard): string {
   );
 }
 
+/** Optional golden reference paths for the agent prompt. */
 export function goldenReferenceLines(standard: ResolvedStandard): string {
   const onboarding = resolveOnboardingConfig(standard);
   const lines: string[] = [];

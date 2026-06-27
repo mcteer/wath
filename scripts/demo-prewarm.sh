@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Pre-warm demo environment — run before rehearsal or live demo.
+#
+# Builds the engine, installs Python deps, verifies the golden fixture, and
+# optionally warms Docker layer cache for the tier-1 consumer demo.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

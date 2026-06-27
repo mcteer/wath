@@ -1,3 +1,5 @@
+"""Tier-1 orders-api demo — static DATABASE_URL (the problem Wath solves)."""
+
 import os
 
 from fastapi import FastAPI, HTTPException
@@ -23,16 +25,18 @@ def list_orders(limit: int = 10):
 
 @app.get("/db-check")
 def db_check():
+    """Prove the app uses a live static credential against Postgres."""
     dsn = db.get_database_url()
     has_static = "://" in dsn and "@" in dsn
     try:
         total = db.count_orders()
         connected = True
-        error = None
     except Exception as exc:
         total = 0
         connected = False
         error = str(exc)
+    else:
+        error = None
 
     return {
         "uses_static_dsn": has_static,
