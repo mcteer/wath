@@ -64,3 +64,14 @@ node packages/engine/dist/cli/index.js onboard ./examples/consumer-demo
 ```
 
 Wath should detect the static credential pattern and prescribe a Vault dynamic-secrets integration.
+
+## Demo rehearsal
+
+From the repo root:
+
+```bash
+npm run demo:prewarm
+npm run demo:run
+```
+
+See [docs/demo/README.md](../../docs/demo/README.md) for the full run-of-show and demo-day checklist.
