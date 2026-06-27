@@ -16,3 +16,7 @@ venv/
 # IDE
 .idea/
 .vscode/
+
+# Materialized by wath onboard --materialize (do not commit)
+examples/consumer-demo/.cursor/
+examples/consumer-demo/.github/

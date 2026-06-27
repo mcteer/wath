@@ -1,5 +1,0 @@
-{
-  "install": "bash standards/security/vault-dynamic-secrets/conformance/install-sandbox-deps.sh",
-  "start": "bash standards/security/vault-dynamic-secrets/conformance/start-sandbox.sh",
-  "terminals": []
-}

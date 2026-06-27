@@ -1,7 +1,0 @@
-{
-  "mcpServers": {
-    "hashicorp-docs": {
-      "url": "https://developer.hashicorp.com/api/mcp"
-    }
-  }
-}
