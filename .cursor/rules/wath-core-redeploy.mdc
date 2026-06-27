@@ -1,0 +1,42 @@
+---
+description: Auto-redeploy wath-core Podman container after engine/MCP/deploy changes
+alwaysApply: true
+---
+
+# wath-core redeploy (agent-owned)
+
+When you change anything that affects the running **wath-core** container, **redeploy immediately yourself** — do not tell the user to redeploy or ask them to confirm.
+
+## Redeploy triggers
+
+Rebuild and recreate **wath-core only** after edits to:
+
+- `packages/engine/**`
+- `packages/mcp-server/**`
+- `Dockerfile`
+- `deploy/podman-compose.yml`
+- `deploy/.env` (when `CURSOR_API_KEY`, `WATH_TOKEN`, or other runtime env vars change)
+
+Also redeploy after `npm run build --workspace=@wath/engine --workspace=@wath/mcp-server` when those builds were required for the change to take effect in the container.
+
+## Command (run from repo root)
+
+```bash
+npm run build --workspace=@wath/engine --workspace=@wath/mcp-server
+podman compose -f deploy/podman-compose.yml up -d --build --force-recreate wath-core
+```
+
+## Safety (Podman on inkantation)
+
+- Compose project name: **wath** — container: **wath-core**
+- Use **`--force-recreate wath-core` only** — never recreate other stacks (demo-app, inkantation, etc.)
+- Never bounce the Podman VM
+
+## Verify after redeploy
+
+```bash
+curl -sf http://127.0.0.1:8080/healthz
+podman exec wath-core sh -c 'test -n "$CURSOR_API_KEY" && echo ok'
+```
+
+Report redeploy success briefly; do not end the turn with "you should redeploy" unless the command failed and you need the user to fix credentials or Podman access.

@@ -8,7 +8,7 @@ Multi-phase onboarding for application repos that commit `wath.json`. Phases adv
 2. Fill in `repo`, `stack`, and `services` (minimal: `"services": ["vault-dynamic-secrets"]`).
 3. In Cursor Desktop, connect the Wath MCP server and run **`wath.onboard`** (or `wath lifecycle ./path --launch` from the Wath repo).
 4. If Wath finds gaps, it opens a **manifest-only PR** updating `wath.json`. Merge it and re-run **`wath.onboard`**.
-5. For each service in `wath.json`, Wath runs **integrate → validate** agents and opens an **integration PR**.
+5. For each service in `wath.json`, Wath runs **integrate → validate** agents and opens an **integration PR** (one `wath.onboard` call with `launch: true` chains both phases).
 6. Your team reviews and merges integration PRs.
 7. Wath records onboarding state under `state/applications/<org>/<repo>.yaml` in the Wath repo.
 
