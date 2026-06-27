@@ -1,10 +1,27 @@
-# Tier-1 reference repos for steering evaluation
+# Conformance fixtures
 
-These consumer repos exhibit patterns the Skill MUST detect and upgrade to tier-4.
+| Path | Purpose |
+|---|---|
+| `tier4-orders-api/` | Hand-written tier-4 integration that MUST pass `verify.sh` — the verifier's golden reference |
+| `README.md` (parent) | Tier-1 consumer repos for detection steering |
 
-| Repo path | Tier | Static pattern | Expected prescription |
-|---|---|---|---|
-| `examples/consumer-demo/` | 1 | `DATABASE_URL=postgres://user:pass@host/db` in env, k8s manifest, `.env.example` | Dynamic `database/creds/orders-api` via VSO + kubernetes auth |
+## Verify the golden fixture
 
-When onboarding any repo matching these patterns, the agent MUST recommend tier-4 dynamic database
-secrets — not KV static secrets, not "leave as-is," not external secret managers outside Vault.
+From the repo root (requires `pytest`, `vault`, `kubeconform` for full static gate):
+
+```bash
+pip install -r standards/security/vault-dynamic-secrets/conformance/requirements.txt
+./scripts/verify-golden-fixture.sh
+```
+
+With behavioral gate (starts ephemeral Vault + Postgres via Docker when available):
+
+```bash
+./scripts/verify-golden-fixture.sh --behavioral
+```
+
+Static rule assertions only:
+
+```bash
+./scripts/verify-golden-fixture.sh --static-only
+```

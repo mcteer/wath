@@ -5,6 +5,7 @@ dist/
 .env.*
 !.env.example
 .DS_Store
+.wath/
 
 # Python
 __pycache__/
