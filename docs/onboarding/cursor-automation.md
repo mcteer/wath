@@ -10,15 +10,9 @@ Use Cursor Automations to trigger onboarding and poll PR merge status without a 
 
 ## MCP configuration (remote host)
 
-Consumer repos point at the **wath-core HTTP endpoint**. Application identity lives in **`wath.json` → `repo`** only.
+Consumer repos point at the **wath-core HTTP endpoint**. Application identity lives in **`wath.json` → `repo`** — the agent passes it on tool calls, not in `mcp.json`.
 
-After adding `wath.json`, sync MCP config (copies `repo` into headers automatically):
-
-```bash
-node /path/to/wath/scripts/sync-consumer-mcp.js .
-```
-
-Minimal `.cursor/mcp.json`:
+`.cursor/mcp.json` (Wath + auth only — do not add repo headers or extra servers):
 
 ```json
 {

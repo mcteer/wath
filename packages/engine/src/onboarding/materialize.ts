@@ -101,7 +101,7 @@ export function materializeConsumerConfig(
   if (!existsSync(mcpPath) || options.force) {
     writeFileSync(
       mcpPath,
-      JSON.stringify(buildConsumerMcpJson(config, spec.repo), null, 2) + "\n"
+      JSON.stringify(buildConsumerMcpJson(config), null, 2) + "\n"
     );
     filesWritten.push(mcpPath);
   }

@@ -34,4 +34,4 @@ When the user asks to run **`wath.onboard`**, **`wath.status`**, or similar Wath
 1. Read `wath.json` at the repo root.
 2. Call the tool with `{ "repo": "<value of the repo field>" }` (add `"launch": true` for live onboard unless dry-run is requested).
 
-If `.cursor/mcp.json` is missing `X-Wath-Consumer-Repo`, run `node /path/to/wath/scripts/sync-consumer-mcp.js .` from this repo (or re-run `install-consumer-template.sh`) — it copies `repo` into the MCP header automatically.
+Never edit `.cursor/mcp.json` to add repo URLs or extra MCP servers — that file is Wath + auth only.
