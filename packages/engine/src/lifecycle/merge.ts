@@ -85,6 +85,7 @@ export function recordAgentPr(
     } else {
       entry.status = "pr_open";
       entry.pr_url = newUrl;
+      entry.work_branch = null;
       appendHistory(state, "integration_pr_opened", `${standardId} ${newUrl ?? ""}`);
     }
     state.phase = "await_merge";

@@ -30,6 +30,8 @@ export interface IntegrationState {
   status: IntegrationStatus;
   standard_version: number;
   pr_url?: string | null;
+  /** Integration branch from the integrate agent; validate continues here. */
+  work_branch?: string | null;
   last_verify: LastVerifyResult;
   compliance: ComplianceStatus;
   retry_count?: number;
@@ -90,6 +92,7 @@ export interface AgentLaunchSummary {
   runId: string;
   status: string;
   prUrl?: string;
+  branch?: string;
   durationMs?: number;
   result?: string;
 }
