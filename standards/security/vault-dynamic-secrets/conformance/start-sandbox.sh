@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Start ephemeral Vault (dev mode) + Postgres for Tier-1 sandbox verification.
-# Writes connection env to ${WATH_SANDBOX_ENV:-/tmp/wath-sandbox.env}
+# Ephemeral Vault + Postgres for Tier-1 sandbox. Writes ${WATH_SANDBOX_ENV:-/tmp/wath-sandbox.env}
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"

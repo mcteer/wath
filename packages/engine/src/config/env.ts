@@ -1,5 +1,3 @@
-/** Wath engine configuration from environment. */
-
 export interface WathConfig {
   apiKey: string | undefined;
   model: string;

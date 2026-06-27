@@ -4,9 +4,6 @@ import type { RequirementsSlices } from "../requirements/parser.js";
 import type { ResolvedStandard } from "../types.js";
 import { resolveOnboardingConfig } from "../onboarding/artifacts.js";
 
-/**
- * Generate .cursor/environment.json from requirements + standard onboarding sandbox config.
- */
 export function generateEnvironmentConfig(
   _requirements: RequirementsSlices,
   standard: ResolvedStandard

@@ -13,7 +13,6 @@ export interface MaterializeResult {
   filesWritten: string[];
 }
 
-/** Resolve absolute consumer app root within the Wath repo or external path. */
 export function resolveConsumerRoot(
   wathRoot: string,
   consumerRepoPath: string
@@ -21,10 +20,6 @@ export function resolveConsumerRoot(
   return resolve(wathRoot, consumerRepoPath);
 }
 
-/**
- * Materialize consumer `.cursor` config from Wath templates + generated environment.
- * Skips files that already exist unless force=true.
- */
 export function materializeConsumerConfig(
   context: OnboardingContext,
   config: WathConfig,
@@ -112,7 +107,6 @@ export function materializeConsumerConfig(
   return { consumerRoot, filesWritten };
 }
 
-/** Extract repository URL from requirements or config. */
 export function resolveConsumerRepoUrl(
   context: OnboardingContext,
   config: WathConfig

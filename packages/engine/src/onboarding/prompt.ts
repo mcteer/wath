@@ -10,7 +10,6 @@ import {
 } from "./artifacts.js";
 import { prSubmissionInstructions } from "./pr-template.js";
 
-/** Build the cloud agent onboarding prompt from composed context. */
 export function buildOnboardingPrompt(context: OnboardingContext): string {
   const requirements = parseRequirements(context.requirementsPath);
   const standard = context.standard;
@@ -82,7 +81,6 @@ ${prSubmissionInstructions(context.repoRoot, standard)}
 `;
 }
 
-/** Load optional prompt overlay from file (for testing). */
 export function loadPromptOverlay(path: string | undefined): string {
   if (!path) return "";
   return readFileSync(path, "utf8");
