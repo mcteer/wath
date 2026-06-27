@@ -98,6 +98,10 @@ export interface LifecycleResult {
   agent?: AgentLaunchSummary;
   /** Present when launch chains integrate → validate in one call. */
   integrateAgent?: AgentLaunchSummary;
+  /** True when agent launch was skipped (duplicate call or PR already open). */
+  skipped?: boolean;
+  skipReason?: "onboard_in_progress" | "pr_already_open";
+  existingPrUrl?: string;
 }
 
 export interface AuditEntry {

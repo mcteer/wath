@@ -35,6 +35,7 @@ import type {
 } from "./types.js";
 import type { RecordMergeInput } from "./merge.js";
 import { recordMerge as doRecordMerge } from "./merge.js";
+import { tryAcquireOnboardLock, releaseOnboardLock } from "./in-flight.js";
 
 function resolveEffectivePhase(
   state: ApplicationState,
@@ -63,8 +64,50 @@ function resolveEffectivePhase(
     return open ? "await_merge" : "integrate";
   }
 
-  if (state.phase === "validate" && state.current_standard_id) return "validate";
+  if (state.phase === "validate" && state.current_standard_id) {
+    const entry = state.integrations[state.current_standard_id];
+    if (entry?.status === "pr_open" && entry.pr_url) return "await_merge";
+    return "validate";
+  }
   return "integrate";
+}
+
+function findExistingOpenPr(
+  state: ApplicationState,
+  phase: OnboardingPhase,
+  standardId?: string
+): string | undefined {
+  if (phase === "enrich_manifest") {
+    if (state.manifest.status === "pending_pr" && state.manifest.pr_url) {
+      return state.manifest.pr_url;
+    }
+  }
+  if ((phase === "validate" || phase === "integrate") && standardId) {
+    const entry = state.integrations[standardId];
+    if (entry?.status === "pr_open" && entry.pr_url) {
+      return entry.pr_url;
+    }
+  }
+  return undefined;
+}
+
+function skippedLaunchResult(
+  appId: string,
+  state: ApplicationState,
+  skipReason: LifecycleResult["skipReason"],
+  existingPrUrl: string | undefined,
+  extras: Partial<LifecycleResult> = {}
+): LifecycleResult {
+  return {
+    appId,
+    phase: "await_merge",
+    state,
+    prompt: awaitMergePrompt(state),
+    skipped: true,
+    skipReason,
+    existingPrUrl,
+    ...extras,
+  };
 }
 
 function awaitMergePrompt(state: ApplicationState): string {
@@ -212,55 +255,87 @@ export async function runLifecycle(
     return result;
   }
 
-  const apiKey = requireApiKey(config);
-  const agentResult = await launchOnboardingAgent({
-    apiKey,
-    prompt,
-    config,
-    autoCreatePR: phase === "validate" || phase === "enrich_manifest",
-    target: options.local
-      ? { mode: "local", cwd: context.consumerRoot }
-      : { mode: "cloud", repoUrl: resolveConsumerRepoUrl(context, config) },
-    onEvent: (event) => {
-      if (event.type === "assistant_text") process.stdout.write(event.text);
-      else if (event.type === "status") console.error(`[wath] ${event.message}`);
-    },
-  });
-
-  result.agent = agentResult;
-
-  if (phase === "enrich_manifest" && agentResult.prUrl) {
-    recordAgentPr(appId, "manifest", agentResult.prUrl);
-    result.state = loadApplicationState(repoRoot, appId)!;
-  } else if (phase === "validate" && agentResult.prUrl && standardId) {
-    recordAgentPr(appId, "integration", agentResult.prUrl, standardId);
-    result.state = loadApplicationState(repoRoot, appId)!;
-  } else if (phase === "integrate") {
-    state.phase = "validate";
-    appendHistory(state, "integrate_complete", standardId);
-    persistState();
-    result.state = state;
+  const ownsLock = !options._chainValidate;
+  if (ownsLock) {
+    const lock = tryAcquireOnboardLock(appId, phase);
+    if (!lock.acquired) {
+      const fresh = loadApplicationState(repoRoot, appId) ?? state;
+      return skippedLaunchResult(appId, fresh, "onboard_in_progress", undefined, {
+        resolvedConsumer: result.resolvedConsumer,
+      });
+    }
   }
 
-  const chainValidate =
-    options.launch &&
-    options.throughValidate !== false &&
-    !options._chainValidate &&
-    phase === "integrate" &&
-    result.agent?.status === "finished";
+  try {
+    const freshBeforeLaunch = loadApplicationState(repoRoot, appId) ?? state;
+    const existingPr = findExistingOpenPr(freshBeforeLaunch, phase, standardId);
+    if (existingPr) {
+      return skippedLaunchResult(appId, freshBeforeLaunch, "pr_already_open", existingPr, {
+        resolvedConsumer: result.resolvedConsumer,
+      });
+    }
 
-  if (chainValidate) {
-    const validateResult = await runLifecycle(intent, {
-      ...options,
-      _chainValidate: true,
+    const apiKey = requireApiKey(config);
+    const agentResult = await launchOnboardingAgent({
+      apiKey,
+      prompt,
+      config,
+      autoCreatePR: phase === "validate" || phase === "enrich_manifest",
+      target: options.local
+        ? { mode: "local", cwd: context.consumerRoot }
+        : { mode: "cloud", repoUrl: resolveConsumerRepoUrl(context, config) },
+      onEvent: (event) => {
+        if (event.type === "assistant_text") process.stdout.write(event.text);
+        else if (event.type === "status") console.error(`[wath] ${event.message}`);
+      },
     });
-    return {
-      ...validateResult,
-      integrateAgent: result.agent,
-    };
-  }
 
-  return result;
+    result.agent = agentResult;
+
+    if (phase === "enrich_manifest" && agentResult.prUrl) {
+      recordAgentPr(appId, "manifest", agentResult.prUrl);
+      result.state = loadApplicationState(repoRoot, appId)!;
+    } else if (phase === "validate" && agentResult.prUrl && standardId) {
+      recordAgentPr(appId, "integration", agentResult.prUrl, standardId);
+      result.state = loadApplicationState(repoRoot, appId)!;
+    } else if (phase === "integrate") {
+      state.phase = "validate";
+      appendHistory(state, "integrate_complete", standardId);
+      persistState();
+      result.state = state;
+    }
+
+    const chainValidate =
+      options.launch &&
+      options.throughValidate !== false &&
+      !options._chainValidate &&
+      phase === "integrate" &&
+      result.agent?.status === "finished";
+
+    if (chainValidate) {
+      const freshBeforeValidate = loadApplicationState(repoRoot, appId) ?? state;
+      const openPr = findExistingOpenPr(freshBeforeValidate, "validate", standardId);
+      if (openPr) {
+        return skippedLaunchResult(appId, freshBeforeValidate, "pr_already_open", openPr, {
+          integrateAgent: result.agent,
+          resolvedConsumer: result.resolvedConsumer,
+        });
+      }
+
+      const validateResult = await runLifecycle(intent, {
+        ...options,
+        _chainValidate: true,
+      });
+      return {
+        ...validateResult,
+        integrateAgent: result.agent,
+      };
+    }
+
+    return result;
+  } finally {
+    if (ownsLock) releaseOnboardLock(appId);
+  }
 }
 
 export function getLifecycleStatus(
