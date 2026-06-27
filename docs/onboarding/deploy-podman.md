@@ -56,7 +56,7 @@ curl -s -X POST http://localhost:8080/api/v1/lifecycle \
   -d '{"consumerPath":"examples/consumer-demo"}' | head
 ```
 
-Note: the default image includes `examples/consumer-demo` (and sibling demos), `standards/`, and `templates/`. Mount additional app repos at runtime if needed.
+Note: the default image includes `examples/consumer-demo` (and sibling demos), `standards/`, and `templates/`. `deploy/podman-compose.yml` bind-mounts `examples/` from the host so manifest edits apply without rebuild. Mount additional app repos at runtime if needed.
 
 ## Cursor / MCP clients
 

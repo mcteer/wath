@@ -81,6 +81,8 @@ curl http://127.0.0.1:8080/healthz
 
 Copy `deploy/.env.example` to `deploy/.env` and set `CURSOR_API_KEY` (and optional `WATH_TOKEN`) before launching agents. Full runbook: [Deploy with Podman](./docs/onboarding/deploy-podman.md).
 
+Demo rehearsal uses wath-core when Podman is up — see [Demo rehearsal](./docs/demo/README.md).
+
 ## CLI reference
 
 | Command | Purpose |

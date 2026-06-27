@@ -11,7 +11,8 @@
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "demo:prewarm": "./scripts/demo-prewarm.sh",
-    "demo:run": "./scripts/demo-run.sh"
+    "demo:run": "./scripts/demo-run.sh",
+    "demo:launch": "./scripts/demo-live-launch.sh"
   },
   "engines": {
     "node": ">=20"

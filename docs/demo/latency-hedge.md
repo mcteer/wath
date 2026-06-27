@@ -4,7 +4,7 @@ Cloud agent runs are unpredictable on stage. Plan the split before demo day.
 
 ## Recommended split
 
-1. **Live kickoff** — run `wath onboard ... --launch --materialize` on stage for authenticity. Show the agent starting, stream a few events.
+1. **Live kickoff** — run `./scripts/demo-live-launch.sh` (or `./scripts/demo-run.sh --launch`) on stage for authenticity. Show the agent starting; wath-core on Podman handles the launch when running.
 2. **Cut to fallback** — if the run exceeds ~3 minutes or stalls, switch to the pre-baked PR walkthrough:
 
 ```bash
@@ -31,8 +31,12 @@ The golden fixture is a hand-written tier-4 integration that passes the same `ve
 If API key or repo URL is unavailable:
 
 ```bash
-node packages/engine/dist/cli/index.js onboard ./examples/consumer-demo
+curl -s -X POST http://localhost:8080/api/v1/lifecycle \
+  -H 'content-type: application/json' \
+  -d '{"consumerPath":"examples/consumer-demo"}'
 ./scripts/demo-fallback-pr.sh
 ```
+
+Or with local CLI fallback (`WATH_USE_CLI=1 ./scripts/demo-run.sh`).
 
 Narrate: "In production this launches the cloud agent with `autoCreatePR`; here is the verified artifact set it produces."

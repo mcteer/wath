@@ -57,13 +57,21 @@ kubectl apply -f k8s/service.yaml
 
 ## Onboarding with Wath
 
-Fill out `wath.json` and run Wath onboarding from the repo root:
+Fill out `wath.json` (ledger id: **`mcteer/orders-api`** from the `repo` URL) and run lifecycle from the Wath repo:
 
 ```bash
-node packages/engine/dist/cli/index.js onboard ./examples/consumer-demo
+# With wath-core on Podman (preferred for demo rehearsal)
+curl -s -X POST http://localhost:8080/api/v1/lifecycle \
+  -H 'content-type: application/json' \
+  -d '{"consumerPath":"examples/consumer-demo"}'
+
+# Or local CLI
+node packages/engine/dist/cli/index.js lifecycle ./examples/consumer-demo
 ```
 
 Wath should detect the static credential pattern and prescribe a Vault dynamic-secrets integration.
+
+For live cloud-agent runs, set `WATH_CONSUMER_REPO_URL` to a GitHub repo the agent can push to (typically a fork of this demo) and use `./scripts/demo-live-launch.sh`.
 
 ## Demo rehearsal
 
