@@ -32,6 +32,7 @@ services:
       WATH_MODEL: ${WATH_MODEL:-composer-2.5}
     volumes:
       - ../state/applications:/app/state/applications:Z
+      - ../examples:/app/examples:Z
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
       interval: 30s

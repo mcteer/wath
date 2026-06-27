@@ -13,9 +13,11 @@ Phase 7 hardening for the live run-of-show.
 
 ```bash
 ./scripts/demo-prewarm.sh          # before rehearsal or live demo
-./scripts/demo-run.sh              # timed local segments (~5-10 min)
-./scripts/demo-run.sh --launch     # + live cloud agent (needs API key)
+./scripts/demo-run.sh              # timed local segments (~5-10 min); prefers wath-core
+./scripts/demo-run.sh --launch     # + live cloud agent (needs API key + repo URL)
+./scripts/demo-live-launch.sh      # live agent only (segment 5 rehearsal)
 ./scripts/demo-fallback-pr.sh      # walk pre-baked tier-4 PR artifacts
+./scripts/poll-merge-prs.sh        # after agent opens PRs — record merges
 ```
 
 ## Quick rehearsal (10 min front-load)

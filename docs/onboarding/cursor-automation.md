@@ -28,6 +28,24 @@ In your app repo `.cursor/mcp.json`:
 
 In Cursor Desktop, ask the agent: **"Run wath.onboard for this repository."**
 
+## HTTP MCP (wath-core container)
+
+When **wath-core** is running via Podman (`http://localhost:8080`), point Cursor at the Streamable HTTP endpoint instead of stdio:
+
+```json
+{
+  "mcpServers": {
+    "wath": {
+      "url": "http://localhost:8080/mcp"
+    }
+  }
+}
+```
+
+If `WATH_TOKEN` is set on the container, add `"headers": { "Authorization": "Bearer YOUR_TOKEN" }` to the MCP config.
+
+Set `WATH_MCP_URL=http://localhost:8080/mcp` when launching cloud agents from the engine so remote agents can reach your local orchestrator (requires network reachability from the cloud agent VM).
+
 ## Automation: onboard on wath.json push
 
 **Trigger:** Git push to default branch when `wath.json` changes.
