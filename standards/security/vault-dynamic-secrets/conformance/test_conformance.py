@@ -36,7 +36,7 @@ STATIC_CRED_PATTERNS = [
     re.compile(r"secret/data/.*(db|database|postgres|mysql)", re.I),        # KV mount for DB creds
 ]
 # Files that legitimately *describe* the dynamic flow and shouldn't trip the scanner.
-SCAN_EXCLUDE_DIRS = {"vault", "conformance", "schema", ".git", "node_modules"}
+SCAN_EXCLUDE_DIRS = {"vault", "conformance", "schema", ".git", "node_modules", ".wath"}
 
 
 # ---------- loaders ----------
@@ -56,7 +56,11 @@ def _load_policy_paths():
     paths = {}
     for block in doc.get("path", []):
         for path_str, body in block.items():
-            paths[path_str] = body
+            key = path_str.strip('"')
+            caps = body.get("capabilities", [])
+            if caps and isinstance(caps[0], str):
+                caps = [c.strip('"') for c in caps]
+            paths[key] = {**body, "capabilities": caps}
     assert paths, "policy.hcl declares no path blocks"
     return paths
 

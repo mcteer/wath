@@ -41,3 +41,9 @@ jobs:
               assert meta['id'] == entry['id'], f'ID mismatch for {entry[\"id\"]}'
           print('Registry OK:', len(reg['standards']), 'standards')
           "
+      - name: Golden fixture static gate (pytest)
+        run: |
+          pip install -r standards/security/vault-dynamic-secrets/conformance/requirements.txt
+          WATH_ARTIFACT_ROOT=standards/security/vault-dynamic-secrets/fixtures/tier4-orders-api \
+            SKIP_TOOLCHAIN=1 \
+            bash standards/security/vault-dynamic-secrets/conformance/verify.sh

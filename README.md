@@ -22,6 +22,9 @@ node packages/engine/dist/cli/index.js list
 
 # Run conformance gate against an artifact root
 node packages/engine/dist/cli/index.js verify vault-dynamic-secrets ./examples/consumer-demo
+
+# Verify the golden tier-4 fixture (hand-written reference integration)
+./scripts/verify-golden-fixture.sh --static-only
 ```
 
 ## Project layout
