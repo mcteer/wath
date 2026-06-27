@@ -18,13 +18,21 @@ done (DoD); if you cannot meet it, stop and report rather than proceeding.
 Read the repo and `INTEGRATION_REQUIREMENTS.md`. Determine: runtime (kubernetes/nomad/vm), stack,
 the current static-credential pattern to replace, target environments, and identity (namespaces /
 service accounts / claims).
-**DoD:** runtime and datastore intent unambiguous. Missing/contradictory required fields → ask the
-submitter; do not assume.
+
+Scan for **tier-1 static credentials** per the standard's §5 (e.g. `DATABASE_URL` with embedded
+password in `k8s/deployment.yaml`, `.env.example`, or app code). If found, tier-4 dynamic database
+secrets are **mandatory** — not optional.
+
+**DoD:** runtime and datastore intent unambiguous; tier-1 patterns identified and flagged for removal.
+Missing/contradictory required fields → ask the submitter; do not assume.
 
 ## Stage 2 — Compose / select standard
 Load the governing standard: `@standards/security/vault-dynamic-secrets/SKILL.md`. Derive the auth method
-from the runtime per its §4 table. Honor the what-vs-admin boundary (§2).
-**DoD:** you can name every rule (VDS-001..008) you must satisfy and the auth method you'll use.
+from the runtime per its §4 table. Honor the what-vs-admin boundary (§2). State the tier-1→tier-4
+upgrade rationale explicitly.
+
+**DoD:** you can name every rule (VDS-001..008) you must satisfy, the auth method you'll use, and
+you have committed to tier-4 (not KV, not static creds left in place).
 
 ## Stage 3 — Parameterize (typed params first)
 Emit `integration.params.json` conforming to
@@ -50,7 +58,7 @@ weaken a check or the standard to make it pass.
 ## Stage 6 — Open PR
 Open one PR (`autoCreatePR`) containing all artifacts plus a description that states: the tier-1→
 tier-4 rationale, the attached verification evidence, the admin-step checklist, and **any
-least-privilege assumption you made** (e.g. the SQL grants) for the SME to ratify (SKILL.md §6).
+least-privilege assumption you made** (e.g. the SQL grants) for the SME to ratify (SKILL.md §8).
 **DoD:** PR is reviewable against evidence, not vibes. Then stop — review and merge are human.
 
 ---
