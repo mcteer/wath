@@ -69,6 +69,18 @@ cp templates/consumer/wath.json.example wath.json
 
 Build the MCP server (`npm run build`), configure [templates/consumer/.cursor/mcp.json](templates/consumer/.cursor/mcp.json) with your `WATH_ROOT`, then invoke **`wath.onboard`** from Cursor chat. See [Cursor Automation guide](./docs/onboarding/cursor-automation.md).
 
+### Deploy with Podman (core container)
+
+Run the **wath-core** HTTP service locally — REST API at `/api/v1/*`, MCP at `/mcp`, health at `/healthz`:
+
+```bash
+podman build -t wath-core:local .
+podman compose -f deploy/podman-compose.yml up --build
+curl http://127.0.0.1:8080/healthz
+```
+
+Copy `deploy/.env.example` to `deploy/.env` and set `CURSOR_API_KEY` (and optional `WATH_TOKEN`) before launching agents. Full runbook: [Deploy with Podman](./docs/onboarding/deploy-podman.md).
+
 ## CLI reference
 
 | Command | Purpose |
@@ -86,7 +98,7 @@ Build the MCP server (`npm run build`), configure [templates/consumer/.cursor/mc
 ```
 standards/              SME standards registry (marketplace catalog)
 packages/engine/        SDK orchestrator — lifecycle, verification, CLI
-packages/mcp-server/    Cursor Desktop MCP (wath.onboard, wath.status, …)
+packages/mcp-server/    Cursor Desktop MCP + wath-core HTTP container
 templates/consumer/     wath.json.example, schema, .cursor templates
 examples/               Runnable demos — see examples/consumer-demo/README.md
 state/applications/     Git-native onboarding ledger (per managed app)
@@ -98,6 +110,7 @@ docs/onboarding/        Lifecycle and Cursor Automation docs
 - [Contributing](./CONTRIBUTING.md) — standards, engine changes, **README sync policy**
 - [Onboarding lifecycle](./docs/onboarding/lifecycle.md) — phases, state schema, operator commands
 - [Cursor Automation](./docs/onboarding/cursor-automation.md) — MCP setup, merge polling
+- [Deploy with Podman](./docs/onboarding/deploy-podman.md) — wath-core container on local Podman
 - [Consumer templates](./templates/consumer/README.md) — `wath.json.example`, PR template, CI workflow
 - [Extension seams](./docs/extensions/README.md) — add standard, change runtime, fleet
 - [Demo rehearsal](./docs/demo/README.md) — run-of-show, checklist, latency hedge

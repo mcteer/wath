@@ -1,0 +1,39 @@
+# Podman Compose — Wath core on localhost
+#
+# Usage:
+#   cp deploy/.env.example deploy/.env   # set CURSOR_API_KEY, optional WATH_TOKEN
+#   podman compose -f deploy/podman-compose.yml up --build
+#
+# Or without compose:
+#   podman build -t wath-core:local .
+#   podman run -d --name wath-core -p 8080:8080 \
+#     -e CURSOR_API_KEY=... \
+#     -v ./state/applications:/app/state/applications:Z \
+#     wath-core:local
+
+services:
+  wath-core:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: wath-core:local
+    container_name: wath-core
+    ports:
+      - "${WATH_PORT:-8080}:8080"
+    environment:
+      WATH_ROOT: /app
+      PORT: "8080"
+      WATH_HOST: "0.0.0.0"
+      CURSOR_API_KEY: ${CURSOR_API_KEY:-}
+      WATH_CONSUMER_REPO_URL: ${WATH_CONSUMER_REPO_URL:-}
+      WATH_TOKEN: ${WATH_TOKEN:-}
+      WATH_MODEL: ${WATH_MODEL:-composer-2.5}
+    volumes:
+      - ../state/applications:/app/state/applications:Z
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped

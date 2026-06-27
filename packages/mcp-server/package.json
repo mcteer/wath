@@ -6,8 +6,13 @@
   "description": "Wath MCP server — HTTP transport for wath.onboard, wath.status tools",
   "type": "module",
   "main": "./dist/index.js",
+  "bin": {
+    "wath-mcp": "./dist/index.js",
+    "wath-core": "./dist/http.js"
+  },
   "scripts": {
     "build": "tsc",
+    "start": "node dist/http.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -15,6 +20,7 @@
     "@wath/engine": "0.1.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.0"
   }

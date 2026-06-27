@@ -1,0 +1,32 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Git
+.git
+.gitignore
+
+# Dev / IDE
+.cursor
+.vscode
+*.md
+!templates/**/*.md
+!standards/**/*.md
+
+# Examples — exclude materialized agent output (mount or materialize at runtime)
+examples/**/.cursor
+examples/**/.github
+
+# Demo / local state (mount volume instead)
+state/applications/*/*
+!state/applications/.gitkeep
+
+# CI
+.github
+
+# Build artifacts outside packages (rebuilt in image)
+packages/engine/dist
+packages/mcp-server/dist
+
+# OS
+.DS_Store
