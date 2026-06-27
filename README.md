@@ -20,8 +20,13 @@ npm run build --workspace=@wath/engine
 # List registered standards
 node packages/engine/dist/cli/index.js list
 
-# Run conformance gate against an artifact root
-node packages/engine/dist/cli/index.js verify vault-dynamic-secrets ./examples/consumer-demo
+# Dry-run onboarding (compose context + prompt, no agent)
+node packages/engine/dist/cli/index.js onboard ./examples/consumer-demo
+
+# Launch cloud agent (requires CURSOR_API_KEY + repo URL)
+# export CURSOR_API_KEY=...
+# export WATH_CONSUMER_REPO_URL=https://github.com/mcteer/wath
+# node packages/engine/dist/cli/index.js onboard ./examples/consumer-demo --launch --materialize
 
 # Verify the golden tier-4 fixture (hand-written reference integration)
 ./scripts/verify-golden-fixture.sh --static-only

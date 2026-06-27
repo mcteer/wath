@@ -1,5 +1,9 @@
 /**
- * Wath MCP server entry point — Phase 4.
- * Registers tools: wath.onboard, wath.status (HTTP transport).
+ * Wath MCP server — HTTP transport exposing wath.onboard / wath.status.
+ * Phase 4: delegates to @wath/engine; deploy separately for Cursor Desktop.
  */
-console.log("Wath MCP server — not yet implemented (planned for a future release).");
+export { loadConfig } from "@wath/engine";
+
+console.log(
+  "Wath MCP server stub — implement HTTP handlers using @wath/engine runOnboarding()."
+);

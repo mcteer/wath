@@ -16,6 +16,7 @@
     "test": "node --test dist/**/*.test.js 2>/dev/null || echo 'No tests yet'"
   },
   "dependencies": {
+    "@cursor/sdk": "^1.0.22",
     "yaml": "^2.7.0"
   },
   "devDependencies": {
