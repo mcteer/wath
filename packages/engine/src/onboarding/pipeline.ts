@@ -95,6 +95,9 @@ export function composeOnboardingContext(
   const runtime = deriveRuntime(spec);
   const requestedStandardIds = listRequestedStandardIds(spec);
   const consumerRepoPath = intent.consumerRepoPath;
+  if (!consumerRepoPath) {
+    throw new Error("consumerRepoPath is required");
+  }
 
   const standard = resolveStandardForSpec(
     repoRoot,

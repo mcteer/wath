@@ -3,6 +3,7 @@ import {
   audit,
   getLifecycleStatus,
   recordMerge,
+  resolveConsumerRepoPath,
   runLifecycle,
 } from "@wath/engine";
 
@@ -10,17 +11,28 @@ export const WATH_TOOL_DEFINITIONS = [
   {
     name: "wath.onboard",
     description:
-      "Start or resume Wath onboarding for an app repo (wath.json). Dry-run by default; set launch=true to run Cursor cloud agents through integrate+validate and open an integration PR in one call.",
+      "Onboard an app to Wath (wath.json). Call with no arguments to run the sole mounted consumer through integrate+validate and open an integration PR via Cloud Agents.",
     inputSchema: {
       type: "object",
       properties: {
         consumerPath: {
           type: "string",
-          description: "Path to consumer repo relative to WATH_ROOT or absolute",
+          description:
+            "Optional. Consumer path relative to WATH_ROOT. Omitted when only one consumer is mounted.",
+        },
+        target: {
+          type: "string",
+          description: "Optional. Repo URL, org/repo app id, or consumer path when multiple apps exist.",
         },
         wathPath: { type: "string", description: "Alternate path to wath.json" },
-        launch: { type: "boolean", description: "Launch Cursor cloud agent" },
-        materialize: { type: "boolean", description: "Write .cursor config into consumer repo" },
+        launch: {
+          type: "boolean",
+          description: "Launch Cloud Agents (default: true). Set false for dry-run prompt only.",
+        },
+        materialize: {
+          type: "boolean",
+          description: "Write .cursor scaffolding into the consumer repo (default: false).",
+        },
         phase: {
           type: "string",
           description: "Force phase: discover, enrich_manifest, integrate, validate, await_merge",
@@ -30,25 +42,24 @@ export const WATH_TOOL_DEFINITIONS = [
         throughValidate: {
           type: "boolean",
           description:
-            "When launch=true, run validate after integrate in the same call (default: true). Set false for integrate-only.",
+            "When launch=true, run validate after integrate in the same call (default: true).",
         },
       },
-      required: ["consumerPath"],
     },
   },
   {
     name: "wath.status",
-    description: "Return onboarding lifecycle state for an app (path, repo URL, or org/repo id).",
+    description:
+      "Return onboarding lifecycle state. Omit target when only one consumer is mounted.",
     inputSchema: {
       type: "object",
       properties: {
         target: {
           type: "string",
-          description: "Consumer path, repo URL, or org/repo application id",
+          description: "Optional. Consumer path, repo URL, or org/repo application id.",
         },
         wathPath: { type: "string" },
       },
-      required: ["target"],
     },
   },
   {
@@ -87,29 +98,35 @@ export async function executeWathTool(
 ): Promise<unknown> {
   switch (name) {
     case "wath.onboard": {
-      const consumerPath = String(args.consumerPath ?? "");
-      const launch = Boolean(args.launch);
+      const launch = args.launch !== false;
+      const consumerPath = args.consumerPath ? String(args.consumerPath) : undefined;
+      const target = args.target ? String(args.target) : undefined;
+      const repoUrl = args.repoUrl ? String(args.repoUrl) : undefined;
       return runLifecycle(
         {
-          consumerRepoPath: consumerPath,
+          ...(consumerPath ? { consumerRepoPath: consumerPath } : {}),
           ...(args.wathPath ? { wathPath: String(args.wathPath) } : {}),
           ...(args.standardId ? { standardId: String(args.standardId) } : {}),
         },
         {
           launch,
           dryRun: !launch,
-          materialize: args.materialize !== false && (launch || Boolean(args.materialize)),
+          materialize: args.materialize === true,
           ...(args.phase ? { phase: args.phase as OnboardingPhase } : {}),
-          ...(args.repoUrl ? { repoUrl: String(args.repoUrl) } : {}),
+          ...(repoUrl ? { repoUrl } : {}),
+          ...(target ? { target } : {}),
           ...(args.throughValidate === false ? { throughValidate: false } : {}),
         }
       );
     }
-    case "wath.status":
-      return getLifecycleStatus(
-        String(args.target ?? ""),
-        args.wathPath ? String(args.wathPath) : undefined
-      );
+    case "wath.status": {
+      const target = args.target ? String(args.target) : undefined;
+      if (target) {
+        return getLifecycleStatus(target, args.wathPath ? String(args.wathPath) : undefined);
+      }
+      const resolved = resolveConsumerRepoPath({});
+      return getLifecycleStatus(resolved.repo, args.wathPath ? String(args.wathPath) : undefined);
+    }
     case "wath.record_merge":
       return recordMerge({
         appId: String(args.appId),

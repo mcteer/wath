@@ -41,7 +41,7 @@ For non-dev environments, replace `dev-local-token` with your issued bearer toke
 
 During onboarding materialization (`wath onboard --materialize`), the engine writes this file from `WATH_MCP_URL` in the Wath deploy environment.
 
-In Cursor Desktop, ask the agent: **"Run wath.onboard for this repository."**
+In Cursor Desktop, ask the agent: **"Run wath.onboard"** — no arguments needed when a single consumer is mounted on wath-core.
 
 Set `WATH_MCP_URL` when launching cloud agents from the engine so remote agents reach the same host.
 

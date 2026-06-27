@@ -55,7 +55,8 @@ export interface ResolvedStandard {
 
 export interface OnboardingIntent {
   standardId?: string;
-  consumerRepoPath: string;
+  /** Omitted when resolveConsumerRepoPath can infer from mounts / target. */
+  consumerRepoPath?: string;
   /** Override path to wath.json */
   wathPath?: string;
   /** @deprecated Use wathPath */

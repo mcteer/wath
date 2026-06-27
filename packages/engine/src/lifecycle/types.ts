@@ -56,6 +56,8 @@ export interface LifecycleOptions {
   materialize?: boolean;
   forceMaterialize?: boolean;
   repoUrl?: string;
+  /** Repo URL, org/repo, or consumer path when consumerRepoPath is omitted. */
+  target?: string;
   /** When launch=true, run validate after integrate in the same call (default: true). */
   throughValidate?: boolean;
   /** Force a phase instead of resuming from state. */
@@ -80,6 +82,12 @@ export interface LifecycleResult {
   phase: OnboardingPhase;
   state: ApplicationState;
   prompt: string;
+  /** Set when consumerPath was inferred from mounts or target. */
+  resolvedConsumer?: {
+    consumerRepoPath: string;
+    repo: string;
+    appId: string;
+  };
   materialized?: { filesWritten: string[] };
   /** Final agent run (validate when chained, otherwise the single phase agent). */
   agent?: AgentLaunchSummary;

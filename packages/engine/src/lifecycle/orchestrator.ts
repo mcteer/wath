@@ -2,6 +2,7 @@ import { loadConfig, requireApiKey } from "../config/env.js";
 import { launchOnboardingAgent } from "../agent/client.js";
 import { composeOnboardingContext } from "../onboarding/pipeline.js";
 import { materializeConsumerConfig, resolveConsumerRepoUrl } from "../onboarding/materialize.js";
+import { resolveConsumerRepoPath } from "../onboarding/resolve-consumer.js";
 import { parseWathSpec, resolveWathPath } from "../requirements/parser.js";
 import { writeWathFeedback } from "../requirements/writer.js";
 import { resolveRepoRoot, resolveStandard } from "../standards/registry.js";
@@ -88,6 +89,15 @@ export async function runLifecycle(
   if (options.repoUrl) config.consumerRepoUrl = options.repoUrl;
 
   const repoRoot = resolveRepoRoot();
+  const resolvedConsumer = resolveConsumerRepoPath(
+    {
+      consumerRepoPath: intent.consumerRepoPath,
+      target: options.target ?? options.repoUrl,
+    },
+    repoRoot
+  );
+  intent = { ...intent, consumerRepoPath: resolvedConsumer.consumerRepoPath };
+
   const wathPath = resolveWathPath(intent);
   const spec = parseWathSpec(wathPath);
   const { appId, state } = loadOrInitState(repoRoot, spec, wathPath);
@@ -143,7 +153,13 @@ export async function runLifecycle(
   appendHistory(state, `phase_${phase}`);
   saveApplicationState(repoRoot, appId, state);
 
-  const result: LifecycleResult = { appId, phase, state, prompt };
+  const result: LifecycleResult = {
+    appId,
+    phase,
+    state,
+    prompt,
+    resolvedConsumer,
+  };
   const context = composeOnboardingContext(intent);
 
   const shouldMaterialize =
