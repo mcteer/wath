@@ -1,16 +1,20 @@
 # INTEGRATION_REQUIREMENTS.md
 
-> Fill this out and submit it to onboard your application to a platform service through **Wath**.
-> You describe your app and what it needs in business terms; Wath's agent prescribes the
-> compliant integration, verifies it, and opens a pull request for you to review and merge.
-> You do **not** need to know Vault, write policy, or configure auth — that's the point.
+> **Living intake for your app.** Submit this file to start or **update** a platform integration
+> through Wath — first onboarding, a failed validation retry, or a stack change six months
+> later. Same file, same process: Wath reads the current requirements, regenerates integration
+> artifacts, runs verification, and opens a pull request to your repo for review and merge.
 >
-> Submit by running **`/wath-onboard`** in Cursor (or `@wath onboard` in the chat). Wath reads
-> this file. Anything you leave as `<...>` that Wath can infer from the repo, it will; anything
+> You describe your app in business terms; Wath prescribes the compliant integration. You do
+> **not** need to know Vault, write policy, or configure auth.
+>
+> Submit by running **`/wath-onboard`** in Cursor (or `wath onboard` via the CLI). Wath reads
+> this file. Anything you leave as `<...>` that it can infer from the repo, it will; anything
 > ambiguous, it will ask about rather than guess.
 >
-> Three sections: **Environment** (where your app runs), **Intent** (what it needs), and
-> **Feedback** (auto-filled by the verification loop — leave it blank).
+> **Sections:** Environment (where your app runs), Intent (what it needs), Constraints (gotchas
+> you know upfront), Admin ack (platform steps Wath documents only), and Feedback (written back
+> by the verification loop — leave blank on first submit).
 
 ---
 
@@ -89,13 +93,14 @@ root credential:
 
 ---
 
-## 5. Feedback — auto-populated by Wath (leave blank)
+## 5. Feedback — written by Wath's verification loop (leave blank on submit)
 
-*Wath's verification loop writes structured results here: what the Tier-1 sandbox proved, what
-your Tier-2 CI revealed, and any environment-specific lessons it wrote back. You don't edit this.*
+*After each validation run, Wath appends structured results here: sandbox outcomes, Tier-2 CI
+findings, and gaps to fix. You may also move lessons into section 3 and re-submit. Re-run
+onboarding after updating this file — the same command as the first time.*
 
 ```
 <wath:feedback>
-  (populated on first run)
+  (populated by Wath after validation runs)
 </wath:feedback>
 ```

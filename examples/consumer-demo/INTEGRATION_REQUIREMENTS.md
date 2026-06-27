@@ -1,10 +1,10 @@
 # INTEGRATION_REQUIREMENTS.md
 
-> Fill this out and submit it to onboard your application to a platform service through **Wath**.
-> You describe your app and what it needs in business terms; Wath's agent prescribes the
-> compliant integration, verifies it, and opens a pull request for you to review and merge.
+> **Living intake** for this app. Submit (or re-submit after edits) to run Wath onboarding —
+> first integration, validation retry, or a requirements change later. Wath reads this file,
+> validates, generates integration artifacts, and opens a PR to the repository below.
 >
-> Submit by running **`@wath onboard`** in Cursor (or the Wath CLI). Wath reads this file.
+> Submit via **`wath onboard ./examples/consumer-demo`** from the repo root (or `@wath onboard` in Cursor).
 
 ---
 
@@ -62,10 +62,10 @@
 
 ---
 
-## 5. Feedback — auto-populated by Wath (leave blank)
+## 5. Feedback — written by Wath's verification loop (leave blank on submit)
 
 ```
 <wath:feedback>
-  (populated on first run)
+  (populated by Wath after validation runs)
 </wath:feedback>
 ```

@@ -4,6 +4,8 @@
 
 A developer describes their app in business terms; Wath prescribes a compliant integration with a platform service, **verifies** it deterministically, and opens a **pull request** for humans to review and merge.
 
+**Iterative by design:** teams keep `INTEGRATION_REQUIREMENTS.md` in the app repo and re-submit whenever the stack or constraints change — first onboarding, validation retries, or remediation months later. Same process each time.
+
 The reference implementation onboards applications to **HashiCorp Vault dynamic database secrets** (tier-4). The architecture is designed to grow into an open **service integration marketplace** — each new platform service is a pluggable standard in `standards/`.
 
 > **The name.** A *wath* (Old Norse *vað*) is a ford — the safe, known place to cross a river.

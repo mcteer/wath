@@ -7,8 +7,8 @@ Phase 6 prepares **cold extension** — changes you can make live when an interv
 | Seam | What to change | Example cold prompt |
 |------|----------------|---------------------|
 | **Standard (SKILL)** | Add or edit `standards/<bu>/<id>/` + one registry line | "Also require mTLS via our PKI standard" |
-| **Requirements doc** | Edit `INTEGRATION_REQUIREMENTS.md` environment/intent/constraints | "This runs on Nomad, not Kubernetes" |
-| **Feedback loop** | Swap or extend requirements with a Tier-2 finding | "PgBouncer transaction pooling breaks session auth" |
+| **Requirements doc** | Edit `INTEGRATION_REQUIREMENTS.md` (§1–3 environment/intent/constraints) | "This runs on Nomad, not Kubernetes" |
+| **Feedback loop** | Re-submit the same file after validation findings (§5 or §3) | "PgBouncer transaction pooling breaks session auth" |
 | **Fleet** | Run onboarding across multiple consumer paths | "Onboard our payments API the same way" |
 
 ## 1. Add a standard (insurance: egress-policy)
@@ -53,14 +53,18 @@ Example: change `Runtime` from `kubernetes` to `nomad`, re-run onboard. The prom
 
 See `examples/consumer-demo-nomad/INTEGRATION_REQUIREMENTS.md` for a prepped Nomad variant.
 
-## 3. Feedback-loop regen (requirements v2)
+## 3. Iterative re-onboarding (same file, re-run)
 
-When Tier-2 CI surfaces a constraint, update requirements and re-run:
+When validation surfaces a gap — Tier-2 CI finding, missing constraint, or user oversight — update
+**`INTEGRATION_REQUIREMENTS.md` in place** and re-run:
 
-1. Copy `templates/consumer/INTEGRATION_REQUIREMENTS.v2.example.md` into the consumer repo (or merge its constraints section).
+1. User adds detail to §3 (constraints) or Wath writes findings to §5 (Feedback).
 2. Re-run `wath onboard <path> --launch --materialize`.
 
-The agent re-detects, re-parameterizes, and re-verifies against the updated constraints.
+The agent re-detects against the **current** repo + requirements, re-parameterizes, re-verifies,
+and opens a new PR. No second requirements file; git history shows how intake evolved.
+
+Example: add "PgBouncer transaction mode" under §3, re-run onboard.
 
 ## 4. Platform-push fleet
 
@@ -87,5 +91,5 @@ The engine (`packages/engine/`) loads the registry and `standard.yaml` onboardin
 
 - [ ] Can add a registry entry and re-run onboard without engine code changes
 - [ ] Can change Runtime in requirements and see auth method update in dry-run prompt
-- [ ] Can swap requirements v2 and explain what the agent would re-do
+- [ ] Can edit INTEGRATION_REQUIREMENTS.md §3 and re-run onboard to show the feedback loop
 - [ ] Can run fleet script across two consumer paths

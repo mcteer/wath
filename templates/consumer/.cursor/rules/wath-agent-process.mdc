@@ -14,6 +14,10 @@ alwaysApply: false
 Execute the onboarding as ordered stages. **Do not skip ahead.** Each stage has a definition of
 done (DoD); if you cannot meet it, stop and report rather than proceeding.
 
+This flow applies to **first onboarding and every re-run** — the user may update
+`INTEGRATION_REQUIREMENTS.md` (new runtime, new constraints, validation feedback) and submit
+again; your job is always to integrate against the **current** requirements and repo state.
+
 The **governing standard** is named in the onboarding prompt (SKILL.md under `standards/`).
 All artifact paths, rules, and anti-patterns come from that standard — not from this file.
 
