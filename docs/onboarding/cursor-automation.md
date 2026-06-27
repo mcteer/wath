@@ -4,11 +4,13 @@ Use Cursor Automations to trigger onboarding and poll PR merge status without a 
 
 ## Prerequisites
 
-- Wath MCP server built: `npm run build --workspace=@wath/mcp-server`
-- Consumer repo has `wath.json` and Wath MCP configured in `.cursor/mcp.json`
+- **wath-core** running (Podman or hosted): `curl http://127.0.0.1:8080/healthz`
+- Consumer repo has `wath.json`
 - `CURSOR_API_KEY` and `gh` authenticated for merge polling
 
-## Local MCP (development)
+## MCP configuration (remote host)
+
+Consumer repos point at the **wath-core HTTP endpoint** — the same pattern as any remote MCP service (Notion, Linear, etc.). No local Wath clone or filesystem paths on the developer machine.
 
 In your app repo `.cursor/mcp.json`:
 
@@ -16,35 +18,32 @@ In your app repo `.cursor/mcp.json`:
 {
   "mcpServers": {
     "wath": {
-      "command": "node",
-      "args": ["/absolute/path/to/wath/packages/mcp-server/dist/index.js"],
-      "env": {
-        "WATH_ROOT": "/absolute/path/to/wath"
+      "url": "http://127.0.0.1:8080/mcp",
+      "headers": {
+        "Authorization": "Bearer dev-local-token"
       }
     }
   }
 }
 ```
 
+**Cursor requires the `Authorization` header** on HTTP MCP URLs. Without it, Cursor incorrectly initiates an OAuth flow against localhost and the connection fails with `net::ERR_FAILED` ([known Cursor bug](https://forum.cursor.com/t/remote-mcp-server-on-localhost-fails/157307)). The token must match `WATH_TOKEN` on wath-core (`deploy/.env`).
+
+| Environment | URL |
+|-------------|-----|
+| Local dev (wath-core in Podman) | `http://127.0.0.1:8080/mcp` |
+| Shared / staging | `https://wath.staging.example.com/mcp` |
+| Production | `https://wath.example.com/mcp` |
+
+Use **`127.0.0.1`**, not `localhost`, for local dev (avoids IPv6 resolution issues).
+
+For non-dev environments, replace `dev-local-token` with your issued bearer token.
+
+During onboarding materialization (`wath onboard --materialize`), the engine writes this file from `WATH_MCP_URL` in the Wath deploy environment.
+
 In Cursor Desktop, ask the agent: **"Run wath.onboard for this repository."**
 
-## HTTP MCP (wath-core container)
-
-When **wath-core** is running via Podman (`http://localhost:8080`), point Cursor at the Streamable HTTP endpoint instead of stdio:
-
-```json
-{
-  "mcpServers": {
-    "wath": {
-      "url": "http://localhost:8080/mcp"
-    }
-  }
-}
-```
-
-If `WATH_TOKEN` is set on the container, add `"headers": { "Authorization": "Bearer YOUR_TOKEN" }` to the MCP config.
-
-Set `WATH_MCP_URL=http://localhost:8080/mcp` when launching cloud agents from the engine so remote agents can reach your local orchestrator (requires network reachability from the cloud agent VM).
+Set `WATH_MCP_URL` when launching cloud agents from the engine so remote agents reach the same host.
 
 ## Automation: onboard on wath.json push
 

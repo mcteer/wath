@@ -63,10 +63,10 @@ Note: the default image includes `examples/consumer-demo` (and sibling demos), `
 Point HTTP MCP at:
 
 ```text
-http://localhost:8080/mcp
+http://127.0.0.1:8080/mcp
 ```
 
-Set `WATH_MCP_URL=http://localhost:8080/mcp` when launching cloud agents from the engine.
+Set `WATH_MCP_URL=http://127.0.0.1:8080/mcp` when launching cloud agents from the engine.
 
 ## State persistence
 

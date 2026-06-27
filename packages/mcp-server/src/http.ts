@@ -26,6 +26,33 @@ function authorize(authHeader: string | undefined): boolean {
 async function main(): Promise<void> {
   const app = createMcpExpressApp({ host: HOST });
 
+  app.use((req: Request, _res: Response, next) => {
+    if (req.path === MCP_PATH) {
+      console.error(
+        `[wath] MCP ${req.method} auth=${req.headers.authorization ? "present" : "missing"} origin=${req.headers.origin ?? "-"}`
+      );
+    }
+    next();
+  });
+
+  // Remote MCP clients (Cursor Desktop, cloud agents) use cross-origin fetch.
+  // Expose session headers and allow Private Network Access to localhost dev hosts.
+  app.use((req: Request, res: Response, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Accept, Authorization, mcp-session-id, mcp-protocol-version, Last-Event-ID"
+    );
+    res.setHeader("Access-Control-Expose-Headers", "mcp-session-id, mcp-protocol-version");
+    res.setHeader("Access-Control-Allow-Private-Network", "true");
+    if (req.method === "OPTIONS") {
+      res.sendStatus(204);
+      return;
+    }
+    next();
+  });
+
   app.get("/health", (_req: Request, res: Response) => {
     res.json({
       status: "ok",
