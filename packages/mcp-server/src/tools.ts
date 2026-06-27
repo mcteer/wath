@@ -1,4 +1,4 @@
-import type { OnboardingPhase } from "@wath/engine";
+import type { LifecycleProgressUpdate, OnboardingPhase } from "@wath/engine";
 import {
   audit,
   getLifecycleStatus,
@@ -13,7 +13,7 @@ export const WATH_TOOL_DEFINITIONS = [
   {
     name: "wath.onboard",
     description:
-      "Onboard this app to Wath. Read wath.json and pass repo (the repo field). Chains integrate+validate via Cloud Agents and opens an integration PR. Example: { \"repo\": \"https://github.com/org/app\" }",
+      "Onboard this app to Wath. Read wath.json and pass repo (the repo field). Chains integrate+validate via Cloud Agents and opens an integration PR. Emits MCP progress notifications (integrating → validating → PR submitted) when the client supports them. Example: { \"repo\": \"https://github.com/org/app\" }",
     inputSchema: {
       type: "object",
       properties: {
@@ -101,6 +101,10 @@ export const WATH_TOOL_DEFINITIONS = [
 
 export type WathToolName = (typeof WATH_TOOL_DEFINITIONS)[number]["name"];
 
+export interface WathToolContext {
+  onProgress?: (update: LifecycleProgressUpdate) => void | Promise<void>;
+}
+
 function repoFromArgs(args: Record<string, unknown>): string | undefined {
   if (args.repo) return String(args.repo);
   if (args.target) return String(args.target);
@@ -111,7 +115,8 @@ function repoFromArgs(args: Record<string, unknown>): string | undefined {
 /** Execute a Wath MCP tool; returns JSON-serializable result or throws. */
 export async function executeWathTool(
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  context?: WathToolContext
 ): Promise<unknown> {
   switch (name) {
     case "wath.onboard": {
@@ -132,6 +137,7 @@ export async function executeWathTool(
           ...(repo ? { repo, target: repo } : {}),
           ...(args.throughValidate === false ? { throughValidate: false } : {}),
           consumerRepoHeader: getConsumerRepoHeader(),
+          ...(context?.onProgress ? { onProgress: context.onProgress } : {}),
         }
       );
     }

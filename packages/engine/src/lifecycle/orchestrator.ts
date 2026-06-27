@@ -36,6 +36,12 @@ import type {
 import type { RecordMergeInput } from "./merge.js";
 import { recordMerge as doRecordMerge } from "./merge.js";
 import { tryAcquireOnboardLock, releaseOnboardLock } from "./in-flight.js";
+import {
+  integratingProgress,
+  prSubmittedProgress,
+  validatingProgress,
+} from "./progress.js";
+import type { LifecycleProgressUpdate } from "./types.js";
 
 function resolveEffectivePhase(
   state: ApplicationState,
@@ -89,6 +95,13 @@ function findExistingOpenPr(
     }
   }
   return undefined;
+}
+
+async function notifyProgress(
+  options: LifecycleOptions,
+  update: LifecycleProgressUpdate
+): Promise<void> {
+  await options.onProgress?.(update);
 }
 
 function skippedLaunchResult(
@@ -270,9 +283,18 @@ export async function runLifecycle(
     const freshBeforeLaunch = loadApplicationState(repoRoot, appId) ?? state;
     const existingPr = findExistingOpenPr(freshBeforeLaunch, phase, standardId);
     if (existingPr) {
+      if (standardId) {
+        await notifyProgress(options, prSubmittedProgress(standardId, existingPr));
+      }
       return skippedLaunchResult(appId, freshBeforeLaunch, "pr_already_open", existingPr, {
         resolvedConsumer: result.resolvedConsumer,
       });
+    }
+
+    if (phase === "integrate" && standardId) {
+      await notifyProgress(options, integratingProgress(standardId));
+    } else if (phase === "validate" && standardId) {
+      await notifyProgress(options, validatingProgress(standardId));
     }
 
     const apiKey = requireApiKey(config);
@@ -298,6 +320,7 @@ export async function runLifecycle(
     } else if (phase === "validate" && agentResult.prUrl && standardId) {
       recordAgentPr(appId, "integration", agentResult.prUrl, standardId);
       result.state = loadApplicationState(repoRoot, appId)!;
+      await notifyProgress(options, prSubmittedProgress(standardId, agentResult.prUrl));
     } else if (phase === "integrate") {
       state.phase = "validate";
       appendHistory(state, "integrate_complete", standardId);
@@ -316,6 +339,9 @@ export async function runLifecycle(
       const freshBeforeValidate = loadApplicationState(repoRoot, appId) ?? state;
       const openPr = findExistingOpenPr(freshBeforeValidate, "validate", standardId);
       if (openPr) {
+        if (standardId) {
+          await notifyProgress(options, prSubmittedProgress(standardId, openPr));
+        }
         return skippedLaunchResult(appId, freshBeforeValidate, "pr_already_open", openPr, {
           integrateAgent: result.agent,
           resolvedConsumer: result.resolvedConsumer,

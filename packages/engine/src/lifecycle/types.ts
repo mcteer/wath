@@ -70,6 +70,19 @@ export interface LifecycleOptions {
   maxRetries?: number;
   /** @internal Prevents recursive validate chain. */
   _chainValidate?: boolean;
+  /** Optional progress callback (MCP notifications/progress during launch). */
+  onProgress?: (update: LifecycleProgressUpdate) => void | Promise<void>;
+}
+
+export type LifecycleProgressStage = "integrating" | "validating" | "pr_submitted";
+
+export interface LifecycleProgressUpdate {
+  stage: LifecycleProgressStage;
+  message: string;
+  progress: number;
+  total: number;
+  standardId?: string;
+  prUrl?: string;
 }
 
 export interface AgentLaunchSummary {
