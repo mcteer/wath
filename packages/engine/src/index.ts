@@ -74,6 +74,8 @@ export type {
   ApplicationState,
   LifecycleOptions,
   LifecycleResult,
+  LifecycleProgressStage,
+  LifecycleProgressUpdate,
   AuditReport,
   MergeRecordType,
 } from "./lifecycle/types.js";
