@@ -1,6 +1,7 @@
 {
   "name": "wath",
   "private": true,
+  "license": "Apache-2.0",
   "description": "Onboarding & conformance engine for platform service integrations",
   "workspaces": [
     "packages/*"

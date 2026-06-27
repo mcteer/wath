@@ -17,6 +17,6 @@ export async function launchAgent(
   _options: AgentRunOptions
 ): Promise<AgentRunResult> {
   throw new Error(
-    "Cloud agent launch not yet implemented. See docs/roadmap/03-build-roadmap.md Phase 4."
+    "Cloud agent launch not yet implemented (planned for a future engine release)."
   );
 }

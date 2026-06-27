@@ -4,9 +4,8 @@ Thank you for helping build Wath — an onboarding and conformance engine for pl
 
 ## Before you start
 
-1. Read [bootstrap.md](./bootstrap.md) for the mental model (standard triplet, two homes, invariants).
-2. Read [docs/architecture/01-architecture.md](./docs/architecture/01-architecture.md) for system design.
-3. For Vault work specifically, study the reference standard at `standards/security/vault-dynamic-secrets/`.
+1. Read [README.md](./README.md) for the mental model (standard triplet, two homes, invariants).
+2. For Vault work specifically, study the reference standard at `standards/security/vault-dynamic-secrets/`.
 
 ## Development setup
 
@@ -150,4 +149,5 @@ Open a GitHub issue with the `question` label. For novel security patterns not c
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the same license as the project (see [LICENSE](./LICENSE)).
+By contributing, you agree that your contributions will be licensed under the
+[Apache License, Version 2.0](./LICENSE).

@@ -31,15 +31,10 @@ standards/          SME standards registry (marketplace catalog)
 packages/engine/    SDK orchestrator — selects standards, runs verification
 templates/consumer/ Artifacts teams install in their application repos
 examples/           Runnable demos (tier-1 consumer app)
-docs/               Architecture, roadmap, demo prep
 ```
-
-Read [bootstrap.md](./bootstrap.md) first for the mental model.
 
 ## Documentation
 
-- [Architecture](./docs/architecture/01-architecture.md) — design of record
-- [Build roadmap](./docs/roadmap/03-build-roadmap.md) — phased demo plan
 - [Contributing](./CONTRIBUTING.md) — how to add standards and submit PRs
 
 ## Core invariants
@@ -52,4 +47,4 @@ Read [bootstrap.md](./bootstrap.md) first for the mental model.
 
 ## License
 
-See [LICENSE](./LICENSE).
+Licensed under the [Apache License, Version 2.0](./LICENSE). See also [NOTICE](./NOTICE).
