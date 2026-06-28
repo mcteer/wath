@@ -9,6 +9,8 @@
 #   podman run -d --name wath-core -p 8080:8080 \
 #     -e CURSOR_API_KEY=... \
 #     -v ./state/applications:/app/state/applications:Z \
+#     -v ./standards:/app/standards:Z \
+#     -v ./templates:/app/templates:Z \
 #     wath-core:local
 
 name: wath
@@ -38,6 +40,8 @@ services:
     volumes:
       - ../state/applications:/app/state/applications:Z
       - ../state/runs:/app/state/runs:Z
+      - ../standards:/app/standards:Z
+      - ../templates:/app/templates:Z
       - ../examples:/app/examples:Z
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
