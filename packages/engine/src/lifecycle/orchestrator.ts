@@ -15,6 +15,7 @@ import { applyAuditToState, runComplianceAudit } from "./audit.js";
 import {
   allIntegrationsMerged,
   isManifestComplete,
+  nextDriftStandardId,
   nextPendingStandardId,
 } from "./manifest.js";
 import { recordAgentPr } from "./merge.js";
@@ -227,7 +228,8 @@ export async function runLifecycle(
   let standardId =
     options.standardId ??
     state.current_standard_id ??
-    nextPendingStandardId(spec, state.integrations);
+    nextPendingStandardId(spec, state.integrations) ??
+    nextDriftStandardId(spec, state.integrations);
 
   if (phase === "integrate" || phase === "validate") {
     if (state.manifest.status !== "accepted") {

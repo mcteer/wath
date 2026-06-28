@@ -1,7 +1,9 @@
 import type { ApplicationState, OnboardingPhase } from "./types.js";
 import {
   allIntegrationsMerged,
+  hasDrift,
   isManifestComplete,
+  nextDriftStandardId,
   nextPendingStandardId,
 } from "./manifest.js";
 import type { WathSpec } from "../requirements/parser.js";
@@ -36,7 +38,11 @@ export function resolveEffectivePhase(
   if (forced) return forced;
 
   if (state.phase === "await_merge" && hasAwaitableOpenPr(state)) return "await_merge";
-  if (state.phase === "compliant" && allIntegrationsMerged(spec, state.integrations)) {
+  if (
+    state.phase === "compliant" &&
+    allIntegrationsMerged(spec, state.integrations) &&
+    !hasDrift(state.integrations)
+  ) {
     return "compliant";
   }
 
@@ -47,7 +53,20 @@ export function resolveEffectivePhase(
     state.manifest.status = "accepted";
   }
 
-  if (allIntegrationsMerged(spec, state.integrations)) return "compliant";
+  if (allIntegrationsMerged(spec, state.integrations) && !hasDrift(state.integrations)) {
+    return "compliant";
+  }
+
+  const driftId = nextDriftStandardId(spec, state.integrations);
+  if (driftId) {
+    if (integrationAwaitingPr(state, driftId)) return "validate";
+    if (state.phase === "validate" && state.current_standard_id === driftId) {
+      const entry = state.integrations[driftId];
+      if (entry?.status === "pr_open" && entry.pr_url) return "await_merge";
+      return "validate";
+    }
+    return "integrate";
+  }
 
   const next = nextPendingStandardId(spec, state.integrations);
   const standardId = state.current_standard_id ?? next;
