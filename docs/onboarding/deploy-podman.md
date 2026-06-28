@@ -5,6 +5,7 @@ Run the Wath orchestrator as a single container: HTTP REST API + MCP endpoint, e
 ## Prerequisites
 
 - Podman (or Docker) on your machine
+- `GITHUB_TOKEN` — required for GitHub API access (wath.json fetch, PR discovery, merge poll)
 - Optional: `CURSOR_API_KEY` for `--launch` / agent-backed lifecycle runs
 
 ## Quick start (Podman Compose)
@@ -12,7 +13,7 @@ Run the Wath orchestrator as a single container: HTTP REST API + MCP endpoint, e
 ```bash
 cd /path/to/wath
 cp deploy/.env.example deploy/.env
-# Edit deploy/.env — set CURSOR_API_KEY and optional WATH_TOKEN
+# Edit deploy/.env — set GITHUB_TOKEN, CURSOR_API_KEY, and optional WATH_TOKEN
 
 podman compose -f deploy/podman-compose.yml up --build -d
 curl http://localhost:8080/health
@@ -44,10 +45,17 @@ curl http://localhost:8080/health
 | POST | `/api/v1/lifecycle/stream` | Same body; **SSE** stream (`started` → `progress` → `done` / `error`). Use `curl -N`. |
 | GET | `/api/v1/status?target=examples/consumer-demo` | Lifecycle state |
 | POST | `/api/v1/record-merge` | Body: `{ "appId": "org/repo", "type": "manifest" }` |
+| POST | `/api/v1/poll-merges` | Poll GitHub for merged PRs and update state |
 | GET | `/api/v1/audit?apply=false` | Compliance report |
 | POST | `/mcp` | MCP Streamable HTTP (Cursor / HTTP MCP clients) |
 
 If `WATH_TOKEN` is set, pass `Authorization: Bearer <token>` on all API and MCP requests.
+
+### Automatic merge detection
+
+wath-core runs a background poller every 30s when `GITHUB_TOKEN` (or `GH_TOKEN`) is set. For each application in `await_merge`, it checks open PR URLs via the GitHub API and calls `record-merge` when a PR is merged. Set `WATH_MERGE_POLL_ENABLED=0` to disable.
+
+`GITHUB_TOKEN` is **required** for all GitHub API access from wath-core (wath.json fetch, branch/PR discovery, merge polling). Unauthenticated requests are capped at ~60/hour per IP — insufficient for fleet-wide onboarding or policy-driven bulk reruns.
 
 ### Example: dry-run lifecycle
 

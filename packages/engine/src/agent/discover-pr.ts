@@ -1,6 +1,7 @@
 import { resolveApplicationId } from "../lifecycle/state.js";
+import { githubApiHeaders, requireGitHubToken } from "../github/token.js";
 
-/** Open PR whose head matches branch (public repos, no auth). */
+/** Open PR whose head matches branch. Requires GITHUB_TOKEN. */
 export async function discoverOpenPrForBranch(
   repoUrl: string,
   branch: string
@@ -13,9 +14,7 @@ export async function discoverOpenPrForBranch(
   url.searchParams.set("head", head);
   url.searchParams.set("per_page", "1");
 
-  const res = await fetch(url, {
-    headers: { Accept: "application/vnd.github+json", "User-Agent": "wath-engine" },
-  });
+  const res = await fetch(url, { headers: githubApiHeaders(requireGitHubToken("PR discovery")) });
   if (!res.ok) {
     console.error(`[wath] discoverOpenPrForBranch failed for ${appId}@${branch}: HTTP ${res.status}`);
     return undefined;

@@ -1,11 +1,13 @@
 import { resolveApplicationId } from "../lifecycle/state.js";
+import { githubApiHeaders, requireGitHubToken } from "../github/token.js";
 
-/** List remote branch names for a GitHub repo (public repos, no auth). */
+/** List remote branch names for a GitHub repo. Requires GITHUB_TOKEN. */
 export async function listRemoteBranches(repoUrl: string): Promise<string[]> {
   const appId = resolveApplicationId(repoUrl);
   const [org, repo] = appId.split("/");
+  const token = requireGitHubToken("branch discovery");
   const res = await fetch(`https://api.github.com/repos/${org}/${repo}/branches?per_page=100`, {
-    headers: { Accept: "application/vnd.github+json", "User-Agent": "wath-engine" },
+    headers: githubApiHeaders(token),
   });
   if (!res.ok) {
     throw new Error(`GitHub branches API failed for ${appId}: HTTP ${res.status}`);
@@ -23,11 +25,12 @@ export async function discoverIntegrateBranch(repoUrl: string): Promise<string |
 
   const appId = resolveApplicationId(repoUrl);
   const [org, repo] = appId.split("/");
+  const token = requireGitHubToken("branch discovery");
   let newest: { name: string; date: number } | undefined;
   for (const name of cursorBranches) {
     const res = await fetch(
       `https://api.github.com/repos/${org}/${repo}/commits/${encodeURIComponent(name)}`,
-      { headers: { Accept: "application/vnd.github+json", "User-Agent": "wath-engine" } }
+      { headers: githubApiHeaders(token) }
     );
     if (!res.ok) continue;
     const commit = (await res.json()) as { commit?: { committer?: { date?: string } } };

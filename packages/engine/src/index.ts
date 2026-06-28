@@ -90,6 +90,13 @@ export type {
   MergeRecordType,
 } from "./lifecycle/types.js";
 export type { RecordMergeInput } from "./lifecycle/merge.js";
+export { pollMergedPrs } from "./lifecycle/poll-merges.js";
+export type {
+  PollMergeResult,
+  PollMergeRecorded,
+  PollMergeError,
+} from "./lifecycle/poll-merges.js";
+export { requireGitHubToken, resolveGitHubToken } from "./github/token.js";
 export {
   buildManifestEnrichmentPrompt,
   buildIntegratePrompt,
