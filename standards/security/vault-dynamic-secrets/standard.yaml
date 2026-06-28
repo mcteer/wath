@@ -1,5 +1,5 @@
 id: vault-dynamic-secrets
-version: 4
+version: 5
 owner: security-engineering
 rule_prefix: VDS
 rules:
@@ -11,6 +11,7 @@ rules:
   - VDS-006
   - VDS-007
   - VDS-008
+  - VDS-009
 schema: schema/integration.params.schema.json
 conformance_entry: conformance/verify.sh
 runtimes:
@@ -32,7 +33,7 @@ onboarding:
     vault/policy.hcl: Least-privilege Vault policy — read on database/creds/<role> only; no path wildcards (VDS-004)
     vault/auth-kubernetes-role.json: Kubernetes auth role binding — ties this app's service account and namespace to the policy (VDS-006)
     k8s/vso-dynamic-secret.yaml: Vault Secrets Operator CR — syncs short-lived DB credentials from Vault into a Kubernetes Secret
-    k8s/deployment.yaml: App Deployment wired to the VSO-managed Secret — no static DATABASE_URL or password env values (VDS-001)
+    k8s/deployment.yaml: App Deployment wired to the VSO-managed Secret — no static DATABASE_URL or password env values (VDS-001); automountServiceAccountToken false (VDS-009)
     .github/workflows/vault-verify.yml: CI gate — sparse-checkouts Wath standards and re-runs conformance on every PR (VDS-008)
   golden_fixture: fixtures/tier4-orders-api
   golden_params: examples/integration.params.orders-api.json

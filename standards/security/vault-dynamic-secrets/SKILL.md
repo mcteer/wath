@@ -12,7 +12,7 @@ description: >
   Owned by: Security Engineering (CODEOWNERS).
 owner: security-engineering
 standard_id: vault-dynamic-secrets
-version: 4
+version: 5
 ---
 
 # Standard: Vault Dynamic Database Secrets (tier-4)
@@ -173,6 +173,9 @@ do not work around it — surface it.
   ConfigMaps).
 - **VDS-008 — Durable verification.** The integration MUST ship a CI workflow that re-proves
   the dynamic-secret flow, so the onboarding cannot silently regress to static creds later.
+- **VDS-009 — Disable default SA token mount.** Kubernetes Deployments MUST set
+  `automountServiceAccountToken: false` on the Pod spec so only the Vault auth identity
+  (bound service account) is used — not the default projected API token.
 
 ## 8. What this standard does *not* mechanize (human ratification)
 
@@ -193,7 +196,7 @@ downstream, by artifacts compiled from this same standard but executed independe
 model:
 
 1. **Tier-1 static gate** — `conformance/test_conformance.py` parses what you produced and
-   asserts VDS-001…008 deterministically, alongside toolchain checks (`vault policy fmt`,
+   asserts VDS-001…009 deterministically, alongside toolchain checks (`vault policy fmt`,
    `kubeconform`). Run via `conformance/verify.sh`.
 2. **Tier-1 behavioral gate** — the sandbox proves the signed-identity → role → policy →
    dynamic-secret flow actually issues a working, expiring credential against a throwaway DB.
