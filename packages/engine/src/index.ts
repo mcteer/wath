@@ -79,7 +79,9 @@ export {
   clearActiveRun,
   sweepStaleActiveRuns,
   isActiveRunStale,
+  isOnboardInFlight,
   STALE_RUN_MAX_AGE_MS,
+  tryClaimActiveRun,
 } from "./lifecycle/run-progress.js";
 export type { ActiveOnboardRun, ActiveRunStatus } from "./lifecycle/run-progress.js";
 export type {

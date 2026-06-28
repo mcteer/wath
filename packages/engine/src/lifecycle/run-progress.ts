@@ -62,6 +62,50 @@ export function beginActiveRun(appId: string, wathRoot?: string): ActiveOnboardR
   return run;
 }
 
+/** Atomically claim an onboard run; rejects concurrent launches for the same app. */
+export function tryClaimActiveRun(
+  appId: string,
+  wathRoot?: string
+): { claimed: true; run: ActiveOnboardRun } | { claimed: false; run: ActiveOnboardRun } {
+  const root = wathRoot ?? resolveRepoRoot();
+  const existing = loadActiveRun(appId, root);
+  if (existing?.status === "running" && !isActiveRunStale(existing)) {
+    return { claimed: false, run: existing };
+  }
+
+  const now = new Date().toISOString();
+  const run: ActiveOnboardRun = {
+    appId,
+    status: "running",
+    message: "Onboarding started",
+    progress: 0,
+    total: 3,
+    startedAt: now,
+    updatedAt: now,
+  };
+
+  const path = runProgressPath(root, appId);
+  mkdirSync(dirname(path), { recursive: true });
+  try {
+    writeFileSync(path, stringifyYaml(run, { lineWidth: 0 }), { flag: "wx" });
+    return { claimed: true, run };
+  } catch (err: unknown) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code !== "EEXIST") throw err;
+    const retry = loadActiveRun(appId, root);
+    if (retry?.status === "running" && !isActiveRunStale(retry)) {
+      return { claimed: false, run: retry };
+    }
+    saveActiveRun(run, root);
+    return { claimed: true, run };
+  }
+}
+
+export function isOnboardInFlight(appId: string, wathRoot?: string): boolean {
+  const run = loadActiveRun(appId, wathRoot);
+  return run?.status === "running" && !isActiveRunStale(run);
+}
+
 export function recordActiveRunProgress(
   appId: string,
   update: LifecycleProgressUpdate,

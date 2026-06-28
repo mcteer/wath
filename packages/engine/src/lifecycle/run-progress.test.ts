@@ -12,10 +12,12 @@ import {
   completeActiveRun,
   failActiveRun,
   isActiveRunStale,
+  isOnboardInFlight,
   loadActiveRun,
   recordActiveRunProgress,
   sweepStaleActiveRuns,
   STALE_RUN_MAX_AGE_MS,
+  tryClaimActiveRun,
 } from "./run-progress.js";
 
 describe("run progress persistence", () => {
@@ -67,6 +69,18 @@ describe("run progress persistence", () => {
     assert.equal(isActiveRunStale(run), true);
     assert.equal(sweepStaleActiveRuns(wathRoot), 1);
     assert.equal(loadActiveRun(appId, wathRoot)?.status, "error");
+    clearActiveRun(appId, wathRoot);
+  });
+
+  it("tryClaimActiveRun rejects concurrent claims", () => {
+    clearActiveRun(appId, wathRoot);
+    const first = tryClaimActiveRun(appId, wathRoot);
+    assert.equal(first.claimed, true);
+    assert.equal(isOnboardInFlight(appId, wathRoot), true);
+
+    const second = tryClaimActiveRun(appId, wathRoot);
+    assert.equal(second.claimed, false);
+
     clearActiveRun(appId, wathRoot);
   });
 });
