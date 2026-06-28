@@ -58,6 +58,10 @@ Set `WATH_MCP_URL` when launching cloud agents from the engine so remote agents 
 
 When **wath-core** is deployed with `GITHUB_TOKEN` in `deploy/.env`, a background poller checks `state/applications/*/*.yaml` every 30s and records merges automatically. No separate Cursor Automation or cron is required for merge detection.
 
+## Drift remediation (automatic in wath-core)
+
+When **wath-core** has `CURSOR_API_KEY` set, a drift poller runs every 5 minutes: `wath audit --apply` plus async `wath.onboard` for apps behind the current standard version. Skips apps awaiting merge or already onboarding.
+
 ## Automation: poll open PRs (optional external fallback)
 
 **Trigger:** Scheduled (e.g. hourly) in the **Wath** repo.
@@ -83,8 +87,8 @@ done
 
 Prefer wiring this loop into a Cursor Automation with the `gh` and Wath MCP tools enabled.
 
-## Automation: compliance drift scan
+## Automation: compliance drift scan (optional external fallback)
 
 **Trigger:** Scheduled daily, or on push to `standards/registry.yaml` in the Wath repo.
 
-**Action:** Run `wath audit --json`. For each app with `compliance: drift`, invoke `wath.onboard` with `phase: integrate` to open update PRs.
+**Action:** Prefer the built-in drift poller in wath-core (`WATH_DRIFT_POLL_ENABLED=1`). For external automation: run `wath poll-drift` or `wath audit --apply` then `wath.onboard` with `launch: true` for drifted apps.

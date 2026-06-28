@@ -5,6 +5,7 @@ import {
   getLifecycleStatus,
   loadActiveRun,
   pollMergedPrs,
+  pollDrift,
   recordMerge,
   resolveApplicationId,
   resolveConsumer,
@@ -102,6 +103,12 @@ export const WATH_TOOL_DEFINITIONS = [
     inputSchema: { type: "object", properties: {} },
   },
   {
+    name: "wath.poll_drift",
+    description:
+      "Run compliance audit, apply drift flags, and launch onboard for apps behind the current standard version (same as wath-core background drift poller).",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
     name: "wath.audit",
     description:
       "Run compliance audit vs standards registry; optionally apply drift flags to state files.",
@@ -126,6 +133,8 @@ const MCP_TOOL_ALIASES: Record<string, WathToolName> = {
   "wath-record-merge": "wath.record_merge",
   wath_poll_merges: "wath.poll_merges",
   "wath-poll-merges": "wath.poll_merges",
+  wath_poll_drift: "wath.poll_drift",
+  "wath-poll-drift": "wath.poll_drift",
   wath_audit: "wath.audit",
   "wath-audit": "wath.audit",
 };
@@ -261,6 +270,8 @@ export async function executeWathTool(
       });
     case "wath.poll_merges":
       return pollMergedPrs();
+    case "wath.poll_drift":
+      return pollDrift();
     case "wath.audit":
       return audit({ apply: Boolean(args.apply) });
     default:

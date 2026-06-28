@@ -146,11 +146,14 @@ wath record-merge --app org/repo --type manifest --pr https://github.com/org/rep
 wath record-merge --app org/repo --type integration --standard vault-dynamic-secrets --pr https://github.com/org/repo/pull/124
 ```
 
-When **wath-core** is running with `GITHUB_TOKEN` set, a background merge poller records merges automatically (every 30s). You can also poll on demand:
+When **wath-core** is running with `GITHUB_TOKEN` set, a background merge poller records merges automatically (every 30s). With `CURSOR_API_KEY` set, a drift poller audits for standard version drift (every 5 min) and launches remediation onboard runs. You can also poll on demand:
 
 ```bash
 wath poll-merges
+wath poll-drift          # audit + launch remediation for drifted apps
+wath poll-drift --dry-run  # audit only, no agent launch
 # or: curl -X POST http://127.0.0.1:8080/api/v1/poll-merges -H "Authorization: Bearer $WATH_TOKEN"
+# or: curl -X POST http://127.0.0.1:8080/api/v1/poll-drift -H "Authorization: Bearer $WATH_TOKEN"
 # or: ./scripts/poll-merge-prs.sh  (legacy gh-based cron)
 ```
 
@@ -222,6 +225,7 @@ Full runbook: [Deploy with Podman](./docs/onboarding/deploy-podman.md). Demo scr
 | `wath status <path\|url\|org/repo>` | Lifecycle state |
 | `wath record-merge --app org/repo --type …` | Mark a PR merged; advance phase |
 | `wath poll-merges` | Poll GitHub for merged PRs and update state |
+| `wath poll-drift [--dry-run]` | Audit for drift and launch remediation onboard |
 | `wath audit [--apply]` | Drift / compliance report |
 | `wath verify <standard-id> <path>` | Run conformance gate |
 

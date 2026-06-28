@@ -10,6 +10,7 @@ import {
   runLifecycle,
 } from "../lifecycle/orchestrator.js";
 import { pollMergedPrs } from "../lifecycle/poll-merges.js";
+import { pollDrift } from "../lifecycle/poll-drift.js";
 import type { OnboardingPhase } from "../lifecycle/types.js";
 
 const [, , command, ...argv] = process.argv;
@@ -72,6 +73,7 @@ Usage:
   wath status <path|repo-url|org/repo>   Lifecycle state for an application
   wath record-merge [opts]               Record a merged PR and advance phase
   wath poll-merges [--json]              Poll GitHub for merged onboarding PRs
+  wath poll-drift [--dry-run]            Audit for standard drift and launch remediation
   wath audit [--apply] [--json]          Compliance audit vs standards registry
   wath verify <standard-id> <artifact-root>  Run conformance gate
 
@@ -93,7 +95,7 @@ record-merge options:
   --standard <id>       Required for integration merges
 
 Environment:
-  CURSOR_API_KEY              Cursor API key (required for --launch)
+  CURSOR_API_KEY              Cursor API key (required for --launch and drift poller)
   WATH_ROOT                   Path to Wath repo root
   GITHUB_TOKEN / GH_TOKEN     GitHub API token (required for GitHub fetches and merge poll)
   WATH_CONSUMER_REPO_URL      GitHub URL for cloud onboarding
@@ -206,6 +208,12 @@ async function main(): Promise<void> {
     }
     case "poll-merges": {
       const result = await pollMergedPrs();
+      console.log(JSON.stringify(result, null, 2));
+      process.exit(result.errors.length > 0 ? 1 : 0);
+    }
+    case "poll-drift": {
+      const { flags } = parseArgs(argv);
+      const result = await pollDrift({ launch: !flags.has("--dry-run") });
       console.log(JSON.stringify(result, null, 2));
       process.exit(result.errors.length > 0 ? 1 : 0);
     }

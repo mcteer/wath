@@ -97,6 +97,13 @@ export type {
   PollMergeError,
 } from "./lifecycle/poll-merges.js";
 export { requireGitHubToken, resolveGitHubToken } from "./github/token.js";
+export { pollDrift } from "./lifecycle/poll-drift.js";
+export type {
+  PollDriftResult,
+  PollDriftTriggered,
+  PollDriftSkipped,
+  PollDriftError,
+} from "./lifecycle/poll-drift.js";
 export {
   buildManifestEnrichmentPrompt,
   buildIntegratePrompt,
