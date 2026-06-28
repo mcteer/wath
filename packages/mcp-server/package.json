@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "license": "Apache-2.0",
-  "description": "Wath MCP server — HTTP transport for wath.onboard, wath.status tools",
+  "description": "Wath MCP server \u2014 HTTP transport for wath.onboard, wath.status tools",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
@@ -13,7 +13,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/http.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test dist/**/*.test.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

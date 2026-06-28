@@ -62,6 +62,24 @@ PY
   node "${engine}" "${args[@]}"
 }
 
+
+# POST /api/v1/lifecycle/stream — SSE progress events + final result on "done".
+# Use curl -N (or this helper) so progress lines arrive while onboarding runs.
+wath_lifecycle_stream() {
+  local body="$1"
+
+  if ! wath_core_available; then
+    echo "wath_lifecycle_stream requires wath-core (set WATH_USE_CLI=0)" >&2
+    return 1
+  fi
+
+  # shellcheck disable=SC2046
+  curl -sSN -X POST "${WATH_CORE_URL}/api/v1/lifecycle/stream" \
+    -H 'content-type: application/json' \
+    $(_wath_curl_auth_args) \
+    -d "${body}"
+}
+
 # GET /api/v1/status — prints JSON status to stdout.
 wath_status_json() {
   local target="$1"

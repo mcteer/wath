@@ -40,7 +40,8 @@ curl http://localhost:8080/health
 |--------|------|---------|
 | GET | `/health` | JSON health + `wathRoot` |
 | GET | `/healthz` | Plain OK (container healthcheck) |
-| POST | `/api/v1/lifecycle` | Body: `{ "consumerPath": "examples/consumer-demo", "launch": false }` |
+| POST | `/api/v1/lifecycle` | Body: `{ "repo": "https://github.com/org/app", "launch": true }` — blocking JSON response |
+| POST | `/api/v1/lifecycle/stream` | Same body; **SSE** stream (`started` → `progress` → `done` / `error`). Use `curl -N`. |
 | GET | `/api/v1/status?target=examples/consumer-demo` | Lifecycle state |
 | POST | `/api/v1/record-merge` | Body: `{ "appId": "org/repo", "type": "manifest" }` |
 | GET | `/api/v1/audit?apply=false` | Compliance report |

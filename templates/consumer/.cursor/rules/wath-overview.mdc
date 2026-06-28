@@ -32,6 +32,7 @@ The application identity for Wath is **`wath.json` → `repo`** — never ask th
 When the user asks to run **`wath.onboard`**, **`wath.status`**, or similar Wath MCP tools:
 
 1. Read `wath.json` at the repo root.
-2. Call the tool with `{ "repo": "<value of the repo field>" }` (add `"launch": true` for live onboard unless dry-run is requested).
+2. **Prefer MCP:** call `wath_onboard` with `{ "repo": "<value of the repo field>", "launch": true }` unless dry-run is requested.
+3. **REST fallback only** when MCP is unavailable: `POST /api/v1/lifecycle/stream` (not `/lifecycle`) with `curl -N`, same JSON body. Relay each `event: progress` message to the user in chat; the final `event: done` carries the lifecycle result.
 
 **Never read, write, or modify `.cursor/mcp.json`** during onboarding — it is configured once by the developer and must not change when `wath.onboard` runs.
