@@ -101,6 +101,33 @@ export const WATH_TOOL_DEFINITIONS = [
 
 export type WathToolName = (typeof WATH_TOOL_DEFINITIONS)[number]["name"];
 
+/** Cursor and some agents call tools with underscores instead of dots. */
+const MCP_TOOL_ALIASES: Record<string, WathToolName> = {
+  wath_onboard: "wath.onboard",
+  "wath-onboard": "wath.onboard",
+  wath_status: "wath.status",
+  "wath-status": "wath.status",
+  wath_record_merge: "wath.record_merge",
+  "wath-record-merge": "wath.record_merge",
+  wath_audit: "wath.audit",
+  "wath-audit": "wath.audit",
+};
+
+export function resolveMcpToolName(name: string): string {
+  return MCP_TOOL_ALIASES[name] ?? name;
+}
+
+/** List canonical tools plus underscore aliases for MCP clients that rename them. */
+type McpToolDefinition = (typeof WATH_TOOL_DEFINITIONS)[number];
+
+export function listMcpToolDefinitions(): McpToolDefinition[] {
+  return WATH_TOOL_DEFINITIONS.flatMap((tool) => {
+    const underscoreName = tool.name.replace(/\./g, "_");
+    if (underscoreName === tool.name) return [tool];
+    return [tool, { ...tool, name: underscoreName } as McpToolDefinition];
+  });
+}
+
 export interface WathToolContext {
   onProgress?: (update: LifecycleProgressUpdate) => void | Promise<void>;
 }
@@ -118,7 +145,7 @@ export async function executeWathTool(
   args: Record<string, unknown>,
   context?: WathToolContext
 ): Promise<unknown> {
-  switch (name) {
+  switch (resolveMcpToolName(name)) {
     case "wath.onboard": {
       const launch = args.launch !== false;
       const consumerPath = args.consumerPath ? String(args.consumerPath) : undefined;

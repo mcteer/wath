@@ -4,7 +4,7 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
-import { WATH_TOOL_DEFINITIONS, executeWathTool, type WathToolContext } from "./tools.js";
+import { executeWathTool, listMcpToolDefinitions, type WathToolContext } from "./tools.js";
 import { createOnboardProgressReporter } from "./progress.js";
 
 /** Create MCP Server with Wath lifecycle tools registered. */
@@ -15,7 +15,7 @@ export function createWathMcpServer(): Server {
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: WATH_TOOL_DEFINITIONS.map((t) => ({ ...t })),
+    tools: listMcpToolDefinitions().map((t) => ({ ...t })),
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
