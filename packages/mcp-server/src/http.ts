@@ -6,6 +6,7 @@ import type { Request, Response } from "express";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 
 import { registerMcpHttpRoutes } from "./mcp-http-handlers.js";
+import { handleLifecycleJson, handleLifecycleStream } from "./lifecycle-routes.js";
 import { runWithRequestContext } from "./request-context.js";
 import { executeWathTool } from "./tools.js";
 
@@ -71,14 +72,15 @@ async function main(): Promise<void> {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    try {
-      const result = await runWithRequestContext({ headers: req.headers }, () =>
-        executeWathTool("wath.onboard", (req.body ?? {}) as Record<string, unknown>)
-      );
-      res.json(result);
-    } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    await handleLifecycleJson(req, res);
+  });
+
+  app.post("/api/v1/lifecycle/stream", async (req: Request, res: Response) => {
+    if (!authorize(req.headers.authorization)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
     }
+    await handleLifecycleStream(req, res);
   });
 
   app.get("/api/v1/status", async (req: Request, res: Response) => {
@@ -133,7 +135,7 @@ async function main(): Promise<void> {
 
   app.listen(PORT, HOST, () => {
     console.error(`[wath] core listening on http://${HOST}:${PORT}`);
-    console.error(`[wath] REST /api/v1/*  MCP ${MCP_PATH}  health /health`);
+    console.error(`[wath] REST /api/v1/* (lifecycle/stream SSE)  MCP ${MCP_PATH}  health /health`);
     console.error(`[wath] WATH_ROOT=${process.env.WATH_ROOT ?? process.cwd()}`);
   });
 }
