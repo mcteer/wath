@@ -1,5 +1,5 @@
 import { loadConfig, requireApiKey } from "../config/env.js";
-import { launchOnboardingAgent } from "../agent/client.js";
+import { launchOnboardingAgent, launchIntegrateValidateChain } from "../agent/client.js";
 import { composeOnboardingContext } from "../onboarding/pipeline.js";
 import { materializeConsumerConfig, resolveConsumerRepoUrl } from "../onboarding/materialize.js";
 import { resolveConsumer } from "../onboarding/resolve-consumer.js";
@@ -321,11 +321,79 @@ export async function runLifecycle(
       await notifyProgress(options, validatingProgress(standardId));
     }
 
-    const validateBranch =
+    const apiKey = requireApiKey(config);
+    const agentTarget = options.local
+      ? { mode: "local" as const, cwd: context.consumerRoot }
+      : { mode: "cloud" as const, repoUrl: resolveConsumerRepoUrl(context, config) };
+    const onAgentEvent = (event: { type: string; text?: string; message?: string }): void => {
+      if (event.type === "assistant_text" && event.text) process.stdout.write(event.text);
+      else if (event.type === "status" && event.message) {
+        console.error(`[wath] ${event.message}`);
+      }
+    };
+
+    const useSingleSessionChain =
+      phase === "integrate" &&
+      options.launch &&
+      options.throughValidate !== false &&
+      !options._chainValidate &&
+      agentTarget.mode === "cloud" &&
+      Boolean(standardId);
+
+    if (useSingleSessionChain) {
+      const validatePrompt = buildValidatePrompt(context, standardId!, undefined, {
+        sameAgentSession: true,
+      });
+      appendHistory(state, "phase_validate");
+      persistState();
+
+      const chain = await launchIntegrateValidateChain({
+        apiKey,
+        integratePrompt: prompt,
+        validatePrompt,
+        config,
+        target: agentTarget,
+        onEvent: onAgentEvent,
+        onValidateStart: async () => {
+          await notifyProgress(options, validatingProgress(standardId!));
+        },
+      });
+
+      result.integrateAgent = chain.integrate;
+      result.agent = chain.validate;
+
+      if (state.integrations[standardId!]) {
+        state.integrations[standardId!].integrate_agent_id = chain.integrate.agentId;
+        const branch = await resolveIntegrateBranch(resolvedConsumer.repo, chain.integrate);
+        if (branch) {
+          state.integrations[standardId!].work_branch = branch;
+          appendHistory(state, "integrate_branch", branch);
+        }
+        appendHistory(state, "integrate_agent", chain.integrate.agentId);
+      }
+      appendHistory(state, "integrate_complete", standardId);
+      state.phase = "await_merge";
+
+      if (chain.validate.prUrl) {
+        recordAgentPr(appId, "integration", chain.validate.prUrl, standardId);
+        result.state = loadApplicationState(repoRoot, appId)!;
+        await notifyProgress(options, prSubmittedProgress(standardId!, chain.validate.prUrl));
+      } else {
+        persistState();
+        result.state = state;
+      }
+
+      return result;
+    }
+
+    let validateBranch =
       phase === "validate" && standardId
         ? (loadApplicationState(repoRoot, appId) ?? state).integrations[standardId]?.work_branch ??
           undefined
         : undefined;
+    if (phase === "validate" && !validateBranch && agentTarget.mode === "cloud") {
+      validateBranch = await discoverIntegrateBranch(agentTarget.repoUrl);
+    }
     const resumeAgentId =
       options._resumeAgentId ??
       (phase === "validate" && standardId
@@ -333,20 +401,18 @@ export async function runLifecycle(
             ?.integrate_agent_id ?? undefined
         : undefined);
 
-    const apiKey = requireApiKey(config);
     const agentResult = await launchOnboardingAgent({
       apiKey,
       prompt,
       config,
       autoCreatePR: phase === "validate" || phase === "enrich_manifest",
-      ...(resumeAgentId ? { resumeAgentId } : validateBranch ? { startingRef: validateBranch } : {}),
-      target: options.local
-        ? { mode: "local", cwd: context.consumerRoot }
-        : { mode: "cloud", repoUrl: resolveConsumerRepoUrl(context, config) },
-      onEvent: (event) => {
-        if (event.type === "assistant_text") process.stdout.write(event.text);
-        else if (event.type === "status") console.error(`[wath] ${event.message}`);
-      },
+      ...(resumeAgentId
+        ? { resumeAgentId }
+        : validateBranch
+          ? { startingRef: validateBranch }
+          : {}),
+      target: agentTarget,
+      onEvent: onAgentEvent,
     });
 
     result.agent = agentResult;
@@ -361,10 +427,7 @@ export async function runLifecycle(
     } else if (phase === "integrate") {
       if (standardId && state.integrations[standardId]) {
         state.integrations[standardId].integrate_agent_id = agentResult.agentId;
-        const branch = await resolveIntegrateBranch(
-          resolvedConsumer.repo,
-          agentResult
-        );
+        const branch = await resolveIntegrateBranch(resolvedConsumer.repo, agentResult);
         if (branch) {
           state.integrations[standardId].work_branch = branch;
           appendHistory(state, "integrate_branch", branch);
@@ -375,37 +438,6 @@ export async function runLifecycle(
       appendHistory(state, "integrate_complete", standardId);
       persistState();
       result.state = state;
-    }
-
-    const chainValidate =
-      options.launch &&
-      options.throughValidate !== false &&
-      !options._chainValidate &&
-      phase === "integrate" &&
-      result.agent?.status === "finished";
-
-    if (chainValidate) {
-      const freshBeforeValidate = loadApplicationState(repoRoot, appId) ?? state;
-      const openPr = findExistingOpenPr(freshBeforeValidate, "validate", standardId);
-      if (openPr) {
-        if (standardId) {
-          await notifyProgress(options, prSubmittedProgress(standardId, openPr));
-        }
-        return skippedLaunchResult(appId, freshBeforeValidate, "pr_already_open", openPr, {
-          integrateAgent: result.agent,
-          resolvedConsumer: result.resolvedConsumer,
-        });
-      }
-
-      const validateResult = await runLifecycle(intent, {
-        ...options,
-        _chainValidate: true,
-        _resumeAgentId: result.agent?.agentId,
-      });
-      return {
-        ...validateResult,
-        integrateAgent: result.agent,
-      };
     }
 
     return result;

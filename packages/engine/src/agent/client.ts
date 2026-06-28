@@ -1,3 +1,4 @@
+import type { SDKAgent } from "@cursor/sdk";
 import { Agent, CursorAgentError } from "@cursor/sdk";
 
 import type { WathConfig } from "../config/env.js";
@@ -45,62 +46,23 @@ function relayStreamEvent(event: unknown, onEvent?: (e: AgentStreamEvent) => voi
   }
 }
 
-/** Launch a Cursor agent (cloud or local) for onboarding. */
-export async function launchOnboardingAgent(
-  options: AgentLaunchOptions
+function resolvePrUrl(result: { git?: { branches?: Array<{ prUrl?: string }> }; result?: string }): string | undefined {
+  const fromGit = result.git?.branches?.find((b) => b.prUrl)?.prUrl;
+  if (fromGit) return fromGit;
+  const match = result.result?.match(/https:\/\/github\.com\/[^\s)]+\/pull\/\d+/);
+  return match?.[0];
+}
+
+async function executeAgentRun(
+  agent: SDKAgent,
+  prompt: string,
+  onEvent?: (event: AgentStreamEvent) => void
 ): Promise<AgentLaunchResult> {
-  const mcpServers = buildMcpServers(options.config);
-
-  const cloudExtras = {
-    autoCreatePR: options.autoCreatePR ?? true,
-    skipReviewerRequest: true,
-    ...(options.target.mode === "cloud" && options.resumeAgentId
-      ? { workOnCurrentBranch: true }
-      : {}),
-  };
-
-  const agentOptions = options.resumeAgentId
-    ? {
-        apiKey: options.apiKey,
-        model: { id: options.config.model },
-        agentId: options.resumeAgentId,
-        cloud: cloudExtras,
-        ...(Object.keys(mcpServers).length ? { mcpServers } : {}),
-      }
-    : options.target.mode === "cloud"
-      ? {
-          apiKey: options.apiKey,
-          model: { id: options.config.model },
-          cloud: {
-            repos: [
-              {
-                url: options.target.repoUrl,
-                ...(options.startingRef ? { startingRef: options.startingRef } : {}),
-              },
-            ],
-            ...cloudExtras,
-          },
-          ...(Object.keys(mcpServers).length ? { mcpServers } : {}),
-        }
-      : {
-          apiKey: options.apiKey,
-          model: { id: options.config.model },
-          local: {
-            cwd: options.target.cwd,
-            settingSources: [],
-          },
-          ...(Object.keys(mcpServers).length ? { mcpServers } : {}),
-        };
-
-  await using agent = options.resumeAgentId
-    ? await Agent.resume(options.resumeAgentId, agentOptions)
-    : await Agent.create(agentOptions);
-
-  const run = await agent.send(options.prompt);
-  options.onEvent?.({ type: "status", message: `run started: ${run.id}` });
+  const run = await agent.send(prompt);
+  onEvent?.({ type: "status", message: `run started: ${run.id}` });
 
   for await (const event of run.stream()) {
-    relayStreamEvent(event, options.onEvent);
+    relayStreamEvent(event, onEvent);
   }
 
   let result;
@@ -119,16 +81,97 @@ export async function launchOnboardingAgent(
     throw new Error(`Agent run failed: ${result.id}${result.result ? ` — ${result.result}` : ""}`);
   }
 
-  const prUrl = result.git?.branches?.find((b) => b.prUrl)?.prUrl;
-  const branch = extractAgentBranch(result.git?.branches);
-
   return {
     agentId: agent.agentId,
     runId: result.id,
     status: result.status,
     result: result.result,
-    prUrl,
-    branch,
+    prUrl: resolvePrUrl(result),
+    branch: extractAgentBranch(result.git?.branches),
     durationMs: result.durationMs,
   };
+}
+
+type CloudLaunchBase = Pick<AgentLaunchOptions, "apiKey" | "config" | "target">;
+
+function cloudAgentOptions(
+  options: CloudLaunchBase,
+  autoCreatePR: boolean,
+  extras: { startingRef?: string; workOnCurrentBranch?: boolean } = {}
+) {
+  const mcpServers = buildMcpServers(options.config);
+  return {
+    apiKey: options.apiKey,
+    model: { id: options.config.model },
+    cloud: {
+      repos: [
+        {
+          url: options.target.mode === "cloud" ? options.target.repoUrl : "",
+          ...(extras.startingRef ? { startingRef: extras.startingRef } : {}),
+        },
+      ],
+      autoCreatePR,
+      skipReviewerRequest: true,
+      ...(extras.workOnCurrentBranch ? { workOnCurrentBranch: true } : {}),
+    },
+    ...(Object.keys(mcpServers).length ? { mcpServers } : {}),
+  };
+}
+
+/** Launch a Cursor agent (cloud or local) for onboarding. */
+export async function launchOnboardingAgent(
+  options: AgentLaunchOptions
+): Promise<AgentLaunchResult> {
+  if (options.resumeAgentId) {
+    await using agent = await Agent.resume(
+      options.resumeAgentId,
+      cloudAgentOptions(options, options.autoCreatePR ?? true, {
+        workOnCurrentBranch: options.target.mode === "cloud",
+      })
+    );
+    return executeAgentRun(agent, options.prompt, options.onEvent);
+  }
+
+  if (options.target.mode === "cloud") {
+    await using agent = await Agent.create(
+      cloudAgentOptions(options, options.autoCreatePR ?? true, {
+        startingRef: options.startingRef,
+      })
+    );
+    return executeAgentRun(agent, options.prompt, options.onEvent);
+  }
+
+  const mcpServers = buildMcpServers(options.config);
+  await using agent = await Agent.create({
+    apiKey: options.apiKey,
+    model: { id: options.config.model },
+    local: {
+      cwd: options.target.cwd,
+      settingSources: [],
+    },
+    ...(Object.keys(mcpServers).length ? { mcpServers } : {}),
+  });
+  return executeAgentRun(agent, options.prompt, options.onEvent);
+}
+
+/** One cloud agent session: integrate (no PR) then validate (open PR on same branch). */
+export async function launchIntegrateValidateChain(
+  options: CloudLaunchBase & {
+    integratePrompt: string;
+    validatePrompt: string;
+    onEvent?: (event: AgentStreamEvent) => void;
+    onValidateStart?: () => void | Promise<void>;
+  }
+): Promise<{ integrate: AgentLaunchResult; validate: AgentLaunchResult }> {
+  if (options.target.mode !== "cloud") {
+    throw new Error("launchIntegrateValidateChain requires cloud target");
+  }
+
+  await using agent = await Agent.create(cloudAgentOptions(options, false));
+
+  const integrate = await executeAgentRun(agent, options.integratePrompt, options.onEvent);
+  await options.onValidateStart?.();
+  const validate = await executeAgentRun(agent, options.validatePrompt, options.onEvent);
+
+  return { integrate, validate };
 }
