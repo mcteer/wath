@@ -67,7 +67,7 @@ export function buildIntegrationPrBody(
   const appLine = appName ? `\n- **App:** ${appName}` : "";
   return `## Wath onboarding — ${standardId}
 
-Opened by wath-core after cloud agent validation (Cursor autoCreatePR requires manual approval).
+Opened by wath-core fallback when the cloud agent did not return a PR URL.
 
 - **Standard:** \`${standardId}\` v${standard.entry.version}${appLine}
 - **Branch:** \`${branch}\`

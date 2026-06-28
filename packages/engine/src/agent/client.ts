@@ -217,22 +217,19 @@ export async function launchIntegrateValidateChain(
     throw new Error("launchIntegrateValidateChain requires cloud target");
   }
 
-  let integrateAgentId: string;
   let integrate: AgentLaunchResult;
 
   {
     await using agent = await Agent.create(cloudAgentOptions(options, false));
     integrate = await executeAgentRun(agent, options.integratePrompt, options.onEvent);
-    integrateAgentId = agent.agentId;
   }
 
   await options.onValidateStart?.();
   const workBranch = integrate.branch;
 
-  // Integrate must not open a PR; validate resumes the same agent with autoCreatePR enabled.
-  await using validateAgent = await Agent.resume(
-    integrateAgentId,
-    cloudAgentOptions(options, true, { workOnCurrentBranch: true })
+  // Fresh agent on the integrate branch with autoCreatePR (matches pre-#36 validate behavior).
+  await using validateAgent = await Agent.create(
+    cloudAgentOptions(options, true, { startingRef: workBranch })
   );
   const validate = await executeValidateWithPrRetries({
     run: (prompt) => executeAgentRun(validateAgent, prompt, options.onEvent),
@@ -287,18 +284,7 @@ export async function launchValidateWithPrRetries(
       onRetry: options.onPrRetry,
     });
 
-  if (options.resumeAgentId) {
-    await using agent = await Agent.resume(
-      options.resumeAgentId,
-      cloudAgentOptions(options, true, cloudExtras)
-    );
-    return runWithRetries(async (prompt) => {
-      const result = await executeAgentRun(agent, prompt, options.onEvent);
-      if (result.branch) activeBranch = result.branch;
-      return result;
-    });
-  }
-
+  // Prefer a fresh agent with autoCreatePR on the integrate branch (resume + autoCreatePR stalls in Cursor).
   await using agent = await Agent.create(cloudAgentOptions(options, true, cloudExtras));
   return runWithRetries(async (prompt) => {
     const result = await executeAgentRun(agent, prompt, options.onEvent);
