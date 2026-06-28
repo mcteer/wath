@@ -34,6 +34,14 @@ describe("buildValidatePrompt", () => {
     assert.match(prompt, /Integration branch \(required\)/);
     assert.match(prompt, /cursor\/vault-dynamic-secrets-3006/);
     assert.match(prompt, /do not create a new branch/i);
-    assert.match(prompt, /from `cursor\/vault-dynamic-secrets-3006`/);
+  });
+
+  it("instructs same-branch PR when sameAgentSession is set", () => {
+    const prompt = buildValidatePrompt(context, "vault-dynamic-secrets", undefined, {
+      sameAgentSession: true,
+    });
+    assert.match(prompt, /Same agent session/);
+    assert.match(prompt, /gh pr create --base main/);
+    assert.match(prompt, /Do NOT create a new branch/);
   });
 });

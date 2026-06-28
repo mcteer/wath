@@ -103,14 +103,25 @@ ${goldenReferenceLines(standard)}
 export function buildValidatePrompt(
   context: OnboardingContext,
   standardId: string,
-  workBranch?: string
+  workBranch?: string,
+  options: { sameAgentSession?: boolean } = {}
 ): string {
   const spec = context.wathSpec;
   const standard = resolveStandard(context.repoRoot, standardId);
   const verifyScript = standardVerifyRepoPath(standard);
 
-  const branchBlock = workBranch
+  const branchBlock = options.sameAgentSession
     ? `
+## Same agent session (critical)
+
+You are continuing on the **same branch** where integration just finished.
+
+- **Do NOT create a new branch.**
+- Run verify gates on the current branch; fix failures in place if needed.
+- Open **one PR** from the current branch with \`gh pr create --base main\` (use the onboarding PR template for the body).
+`
+    : workBranch
+      ? `
 ## Integration branch (required)
 
 Integration commits are on **\`${workBranch}\`**.
@@ -119,7 +130,7 @@ Integration commits are on **\`${workBranch}\`**.
 - Run verify gates on that branch; fix failures in place if needed.
 - Open **one PR** from \`${workBranch}\` → \`main\`.
 `
-    : "";
+      : "";
 
   return `# Wath validation — ${standardId}
 

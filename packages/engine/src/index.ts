@@ -57,7 +57,7 @@ export {
 } from "./onboarding/resolve-consumer.js";
 export type { ResolveConsumerInput, ResolvedConsumer } from "./onboarding/resolve-consumer.js";
 export { loadConfig } from "./config/env.js";
-export { launchOnboardingAgent } from "./agent/client.js";
+export { launchOnboardingAgent, launchIntegrateValidateChain } from "./agent/client.js";
 export { runConformanceGate } from "./verify/runner.js";
 export type { StandardOnboarding } from "./types.js";
 
