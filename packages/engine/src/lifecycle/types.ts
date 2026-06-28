@@ -32,6 +32,8 @@ export interface IntegrationState {
   pr_url?: string | null;
   /** Integration branch from the integrate agent; validate continues here. */
   work_branch?: string | null;
+  /** Cloud agent id from integrate run; validate resumes this agent. */
+  integrate_agent_id?: string | null;
   last_verify: LastVerifyResult;
   compliance: ComplianceStatus;
   retry_count?: number;
@@ -72,6 +74,8 @@ export interface LifecycleOptions {
   maxRetries?: number;
   /** @internal Prevents recursive validate chain. */
   _chainValidate?: boolean;
+  /** @internal Resume integrate cloud agent for validate (same branch/workspace). */
+  _resumeAgentId?: string;
   /** Optional progress callback (MCP notifications/progress during launch). */
   onProgress?: (update: LifecycleProgressUpdate) => void | Promise<void>;
 }

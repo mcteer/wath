@@ -67,6 +67,7 @@ function defaultIntegrationState(wathRoot: string, standardId: string): Integrat
     standard_version: standard.entry.version,
     pr_url: null,
     work_branch: null,
+    integrate_agent_id: null,
     last_verify: "unknown",
     compliance: "in_compliance",
     retry_count: 0,
