@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { stringify as stringifyYaml } from "yaml";
 
 import { integratingProgress } from "./progress.js";
 import {
@@ -10,8 +11,11 @@ import {
   clearActiveRun,
   completeActiveRun,
   failActiveRun,
+  isActiveRunStale,
   loadActiveRun,
   recordActiveRunProgress,
+  sweepStaleActiveRuns,
+  STALE_RUN_MAX_AGE_MS,
 } from "./run-progress.js";
 
 describe("run progress persistence", () => {
@@ -47,5 +51,22 @@ describe("run progress persistence", () => {
     assert.equal(loadActiveRun(appId, wathRoot)?.status, "error");
     clearActiveRun(appId, wathRoot);
     assert.equal(loadActiveRun(appId, wathRoot), null);
+  });
+
+  it("detects and sweeps stale running activeRun files", () => {
+    beginActiveRun(appId, wathRoot);
+    const run = loadActiveRun(appId, wathRoot)!;
+    run.updatedAt = new Date(Date.now() - STALE_RUN_MAX_AGE_MS - 1000).toISOString();
+    run.startedAt = run.updatedAt;
+    writeFileSync(
+      join(wathRoot, "state/runs/mcteer/demo-app.yaml"),
+      stringifyYaml(run, { lineWidth: 0 }),
+      "utf8"
+    );
+
+    assert.equal(isActiveRunStale(run), true);
+    assert.equal(sweepStaleActiveRuns(wathRoot), 1);
+    assert.equal(loadActiveRun(appId, wathRoot)?.status, "error");
+    clearActiveRun(appId, wathRoot);
   });
 });

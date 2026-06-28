@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 
@@ -6,6 +6,9 @@ import { resolveRepoRoot } from "../standards/registry.js";
 import type { LifecycleProgressUpdate, LifecycleResult } from "./types.js";
 
 export type ActiveRunStatus = "running" | "done" | "error";
+
+/** Runs older than this are treated as orphaned (e.g. after wath-core redeploy). */
+export const STALE_RUN_MAX_AGE_MS = 15 * 60 * 1000;
 
 export interface ActiveOnboardRun {
   appId: string;
@@ -123,4 +126,46 @@ export function clearActiveRun(appId: string, wathRoot?: string): void {
   const root = wathRoot ?? resolveRepoRoot();
   const path = runProgressPath(root, appId);
   if (existsSync(path)) unlinkSync(path);
+}
+
+function listActiveRunAppIds(wathRoot: string): string[] {
+  const root = join(wathRoot, "state/runs");
+  if (!existsSync(root)) return [];
+  const out: string[] = [];
+  for (const org of readdirSync(root, { withFileTypes: true })) {
+    if (!org.isDirectory() || org.name.startsWith(".")) continue;
+    const orgDir = join(root, org.name);
+    for (const file of readdirSync(orgDir)) {
+      if (file.endsWith(".yaml") || file.endsWith(".yml")) {
+        out.push(`${org.name}/${file.replace(/\.ya?ml$/, "")}`);
+      }
+    }
+  }
+  return out;
+}
+
+export function isActiveRunStale(
+  run: ActiveOnboardRun,
+  maxAgeMs: number = STALE_RUN_MAX_AGE_MS
+): boolean {
+  if (run.status !== "running") return false;
+  const age = Date.now() - Date.parse(run.updatedAt);
+  return Number.isFinite(age) && age > maxAgeMs;
+}
+
+/** Mark long-running activeRun files as error (e.g. on wath-core startup after redeploy). */
+export function sweepStaleActiveRuns(
+  wathRoot?: string,
+  maxAgeMs: number = STALE_RUN_MAX_AGE_MS
+): number {
+  const root = wathRoot ?? resolveRepoRoot();
+  let swept = 0;
+  for (const appId of listActiveRunAppIds(root)) {
+    const run = loadActiveRun(appId, root);
+    if (run && isActiveRunStale(run, maxAgeMs)) {
+      failActiveRun(appId, "Stale run cleared (process restarted or exceeded max age)", root);
+      swept++;
+    }
+  }
+  return swept;
 }

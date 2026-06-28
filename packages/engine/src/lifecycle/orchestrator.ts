@@ -54,10 +54,12 @@ import {
   parseBranchFromAgentText,
 } from "../agent/discover-branch.js";
 import { resolveEffectivePhase } from "./phase.js";
+import { reconcileInFlightArtifacts } from "./reconcile-github.js";
 import {
   beginActiveRun,
   completeActiveRun,
   failActiveRun,
+  isActiveRunStale,
   loadActiveRun,
   recordActiveRunProgress,
 } from "./run-progress.js";
@@ -335,11 +337,17 @@ export async function runLifecycle(
   try {
     if (options.trackProgress !== false) {
       const active = loadActiveRun(appId, repoRoot);
-      if (!active || active.status !== "running") {
+      if (!active || active.status !== "running" || isActiveRunStale(active)) {
         beginActiveRun(appId, repoRoot);
       }
     }
-    const freshBeforeLaunch = loadApplicationState(repoRoot, appId) ?? state;
+    let freshBeforeLaunch = loadApplicationState(repoRoot, appId) ?? state;
+    if (options.launch && !options.local) {
+      const reconciled = await reconcileInFlightArtifacts(repoRoot, appId, freshBeforeLaunch, {
+        standardId,
+      });
+      freshBeforeLaunch = reconciled.state;
+    }
     const existingPr = findExistingOpenPr(freshBeforeLaunch, phase, standardId);
     if (existingPr) {
       if (standardId) {

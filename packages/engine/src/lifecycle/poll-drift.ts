@@ -3,7 +3,8 @@ import { resolveRepoRoot } from "../standards/registry.js";
 import { applyAuditToState } from "./audit.js";
 import { hasAwaitableOpenPr } from "./phase.js";
 import { runLifecycle } from "./orchestrator.js";
-import { loadActiveRun } from "./run-progress.js";
+import { reconcileInFlightArtifacts } from "./reconcile-github.js";
+import { isActiveRunStale, loadActiveRun } from "./run-progress.js";
 import { loadApplicationState } from "./state.js";
 import type { AuditEntry, AuditReport } from "./types.js";
 
@@ -39,25 +40,27 @@ export interface PollDriftOptions {
   triggerOnboard?: (appId: string, repo: string) => Promise<void>;
 }
 
-function shouldSkipDriftLaunch(
+async function shouldSkipDriftLaunch(
   appId: string,
   wathRoot: string
-): PollDriftSkipped | null {
-  const active = loadActiveRun(appId, wathRoot);
-  if (active?.status === "running") {
-    return { appId, reason: "onboard_in_progress" };
-  }
-
+): Promise<PollDriftSkipped | null> {
   const state = loadApplicationState(wathRoot, appId);
   if (!state) {
     return { appId, reason: "state_not_found" };
   }
 
-  if (state.phase === "await_merge" || hasAwaitableOpenPr(state)) {
+  const { state: synced } = await reconcileInFlightArtifacts(wathRoot, appId, state);
+
+  const active = loadActiveRun(appId, wathRoot);
+  if (active?.status === "running" && !isActiveRunStale(active)) {
+    return { appId, reason: "onboard_in_progress" };
+  }
+
+  if (synced.phase === "await_merge" || hasAwaitableOpenPr(synced)) {
     return { appId, reason: "await_merge" };
   }
 
-  const openRemediation = Object.values(state.integrations).some(
+  const openRemediation = Object.values(synced.integrations).some(
     (entry) => entry.status === "pr_open" && entry.pr_url
   );
   if (openRemediation) {
@@ -88,7 +91,7 @@ export async function pollDrift(options: PollDriftOptions = {}): Promise<PollDri
   for (const entry of audit.applications) {
     if (entry.drift.length === 0) continue;
 
-    const skip = shouldSkipDriftLaunch(entry.appId, wathRoot);
+    const skip = await shouldSkipDriftLaunch(entry.appId, wathRoot);
     if (skip) {
       result.skipped.push(skip);
       continue;
