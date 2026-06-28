@@ -1,6 +1,11 @@
 import { loadRegistry, resolveRepoRoot } from "../standards/registry.js";
 import type { AuditReport, AuditEntry, ComplianceStatus } from "./types.js";
-import { loadAllApplicationStates, loadApplicationState, saveApplicationState } from "./state.js";
+import {
+  appendHistory,
+  loadAllApplicationStates,
+  loadApplicationState,
+  saveApplicationState,
+} from "./state.js";
 
 /** Compare recorded standard versions to registry; flag drift. */
 export function runComplianceAudit(wathRoot?: string): AuditReport {
@@ -62,6 +67,16 @@ export function applyAuditToState(wathRoot?: string): AuditReport {
     for (const [standardId, flag] of Object.entries(entry.compliance)) {
       if (state.integrations[standardId]) {
         state.integrations[standardId].compliance = flag;
+      }
+    }
+    for (const drift of entry.drift) {
+      const integration = state.integrations[drift.standardId];
+      if (integration?.status === "merged") {
+        integration.status = "pending";
+        integration.pr_url = null;
+        integration.work_branch = null;
+        integration.integrate_agent_id = null;
+        appendHistory(state, "drift_remediation_pending", drift.standardId);
       }
     }
     if (entry.drift.length > 0 && state.phase === "compliant") {

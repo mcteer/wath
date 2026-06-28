@@ -82,14 +82,14 @@ describe("resolveEffectivePhase", () => {
     assert.equal(hasAwaitableOpenPr(state), true);
   });
 
-  it("routes drift back to integrate even when integration is merged", () => {
+  it("routes drift to integrate when no branch yet", () => {
     const state = baseState({
       phase: "integrate",
       integrations: {
         "vault-dynamic-secrets": {
-          status: "merged",
+          status: "pending",
           standard_version: 4,
-          pr_url: "https://github.com/mcteer/demo-app/pull/11",
+          pr_url: null,
           work_branch: null,
           integrate_agent_id: null,
           last_verify: "unknown",
@@ -98,6 +98,24 @@ describe("resolveEffectivePhase", () => {
       },
     });
     assert.equal(resolveEffectivePhase(state, spec), "integrate");
+  });
+
+  it("routes drift to validate when remediation branch exists", () => {
+    const state = baseState({
+      phase: "integrate",
+      integrations: {
+        "vault-dynamic-secrets": {
+          status: "pending",
+          standard_version: 4,
+          pr_url: null,
+          work_branch: "cursor/vault-dynamic-secrets-v7",
+          integrate_agent_id: null,
+          last_verify: "unknown",
+          compliance: "drift",
+        },
+      },
+    });
+    assert.equal(resolveEffectivePhase(state, spec), "validate");
   });
 
   it("detects integration awaiting PR", () => {

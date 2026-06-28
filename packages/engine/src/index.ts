@@ -77,6 +77,9 @@ export {
   completeActiveRun,
   failActiveRun,
   clearActiveRun,
+  sweepStaleActiveRuns,
+  isActiveRunStale,
+  STALE_RUN_MAX_AGE_MS,
 } from "./lifecycle/run-progress.js";
 export type { ActiveOnboardRun, ActiveRunStatus } from "./lifecycle/run-progress.js";
 export type {
@@ -98,6 +101,8 @@ export type {
 } from "./lifecycle/poll-merges.js";
 export { requireGitHubToken, resolveGitHubToken } from "./github/token.js";
 export { pollDrift } from "./lifecycle/poll-drift.js";
+export { reconcileInFlightArtifacts } from "./lifecycle/reconcile-github.js";
+export { listOpenWathPrs, discoverOpenWathPr } from "./github/discover-open-prs.js";
 export type {
   PollDriftResult,
   PollDriftTriggered,

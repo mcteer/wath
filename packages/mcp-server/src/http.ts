@@ -11,6 +11,7 @@ import { runWithRequestContext } from "./request-context.js";
 import { executeWathTool } from "./tools.js";
 import { startMergePoller } from "./merge-poller.js";
 import { startDriftPoller } from "./drift-poller.js";
+import { sweepStaleActiveRuns } from "@wath/engine";
 
 const PORT = Number(process.env.PORT ?? process.env.WATH_PORT ?? 8080);
 const HOST = process.env.WATH_HOST ?? "0.0.0.0";
@@ -162,6 +163,10 @@ async function main(): Promise<void> {
   registerMcpHttpRoutes(app, MCP_PATH, authorize);
 
   app.listen(PORT, HOST, () => {
+    const swept = sweepStaleActiveRuns();
+    if (swept > 0) {
+      console.error(`[wath] cleared ${swept} stale activeRun(s) on startup`);
+    }
     console.error(`[wath] core listening on http://${HOST}:${PORT}`);
     console.error(`[wath] REST /api/v1/* (lifecycle/stream SSE)  MCP ${MCP_PATH}  health /health`);
     console.error(`[wath] WATH_ROOT=${process.env.WATH_ROOT ?? process.cwd()}`);

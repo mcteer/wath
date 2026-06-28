@@ -75,6 +75,7 @@ describe("pollDrift", () => {
 
     const updated = loadApplicationState(repoRoot, appId);
     assert.equal(updated?.integrations["vault-dynamic-secrets"]?.compliance, "drift");
+    assert.equal(updated?.integrations["vault-dynamic-secrets"]?.status, "pending");
     assert.equal(updated?.phase, "integrate");
   });
 
