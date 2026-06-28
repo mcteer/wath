@@ -8,6 +8,7 @@ import {
 } from "../onboarding/artifacts.js";
 import { prSubmissionInstructions } from "../onboarding/pr-template.js";
 import { resolveStandard } from "../standards/registry.js";
+import type { DriftRemediationInfo } from "./drift-context.js";
 
 function specJsonBlock(context: OnboardingContext): string {
   const spec = context.wathSpec;
@@ -99,12 +100,90 @@ ${goldenReferenceLines(standard)}
 `;
 }
 
+function driftDeltaBlock(drift: DriftRemediationInfo): string {
+  const lines = [
+    `- **Recorded version (ledger):** v${drift.fromVersion}`,
+    `- **Target registry version:** v${drift.toVersion}`,
+    `- **Standard content version (standard.yaml):** v${drift.contentVersion}`,
+  ];
+  if (drift.versionNotes) {
+    lines.push("", "## Version notes (registry)", drift.versionNotes);
+  }
+  if (drift.targetChangelog) {
+    lines.push("", "## Changelog for v" + drift.toVersion, drift.targetChangelog);
+  }
+  if (!drift.versionNotes && !drift.targetChangelog) {
+    lines.push(
+      "",
+      "_No version-specific changelog documented — assume minimal diff: run conformance first and fix only what the gate reports._"
+    );
+  }
+  return lines.join("\n");
+}
+
+/** Drift remediation — minimal diff against main; do not regenerate unchanged artifacts. */
+export function buildDriftRemediatePrompt(
+  context: OnboardingContext,
+  drift: DriftRemediationInfo
+): string {
+  const spec = context.wathSpec;
+  const standard = resolveStandard(context.repoRoot, drift.standardId);
+  const skillRel = standardSkillRepoPath(standard);
+  const authMethod = deriveAuthMethod(context.runtime);
+  const ruleList = standard.metadata.rules.join(", ");
+
+  return `# Wath drift remediation — ${drift.standardId}
+
+**This is a version-drift remediation run — NOT first-time onboarding.**
+
+The integration was previously merged at registry **v${drift.fromVersion}**. The Wath registry now requires **v${drift.toVersion}**.
+
+Follow \`templates/consumer/.cursor/rules/wath-agent-process.mdc\`.
+Load the governing standard at \`${skillRel}\`.
+
+## Version delta
+
+${driftDeltaBlock(drift)}
+
+## Critical — minimal diff (do not re-integrate from scratch)
+
+1. **Start from \`main\`** — the consumer repo already has merged integration artifacts. Read what is on \`main\` before changing anything.
+2. **Diff first** — compare \`main\` against the version changelog above. **Do NOT regenerate** \`vault/policy.hcl\`, \`integration.params.json\`, or other artifacts that already satisfy the standard on \`main\` unless conformance fails on them.
+3. **Conformance-driven fixes only** — run the verify gates on existing artifacts first. Change only files the gate reports as failing or that the changelog explicitly requires for v${drift.toVersion}.
+4. **No spurious duplication** — do not add Deployments, policies, or CRs that duplicate what \`main\` already has unless a gate proves a namespace or rule is uncovered.
+5. **One integration branch** — commit only necessary fixes. **Do not open a PR yet** — validation runs next.
+
+## Context
+- **Runtime:** ${context.runtime}
+- **Auth method:** ${authMethod}
+- **Standard:** ${drift.standardId} registry v${drift.toVersion} / content v${drift.contentVersion} (${ruleList})
+- **Target repo:** ${spec.repo}
+
+## wath.json
+\`\`\`json
+${specJsonBlock(context)}
+\`\`\`
+
+## Required artifacts (verify on main first; regenerate only if failing)
+
+${artifactChecklistMarkdown(standard)}
+
+${goldenReferenceLines(standard)}
+
+## Steps
+1. Check out \`main\` and inventory existing integration artifacts.
+2. Run conformance mentally or via verify — list gaps only.
+3. Apply **minimal** fixes for v${drift.fromVersion} → v${drift.toVersion} (or gate failures).
+4. Push commits to **one integration branch** — do not open a PR.
+`;
+}
+
 /** Validation agent — run gates and open integration PR on pass. */
 export function buildValidatePrompt(
   context: OnboardingContext,
   standardId: string,
   workBranch?: string,
-  options: { sameAgentSession?: boolean } = {}
+  options: { sameAgentSession?: boolean; driftRemediation?: DriftRemediationInfo } = {}
 ): string {
   const spec = context.wathSpec;
   const standard = resolveStandard(context.repoRoot, standardId);
@@ -132,10 +211,22 @@ Integration commits are on **\`${workBranch}\`**.
 `
       : "";
 
+  const driftBlock = options.driftRemediation
+    ? `
+## Drift remediation PR (critical)
+
+This PR remediates registry **v${options.driftRemediation.fromVersion} → v${options.driftRemediation.toVersion}** drift.
+
+- PR title: \`Wath drift remediation: ${standardId} v${options.driftRemediation.toVersion} for <app>\`
+- **Minimal diff only** — explain each changed file and why the v${options.driftRemediation.fromVersion} → v${options.driftRemediation.toVersion} delta or a conformance gate required it.
+- Do **not** claim policy or artifact changes that are not in the diff.
+`
+    : "";
+
   return `# Wath validation — ${standardId}
 
 Verify the integration for **${standardId}** and open **one integration PR** on success.
-${branchBlock}
+${branchBlock}${driftBlock}
 ## Target repo
 ${spec.repo}
 

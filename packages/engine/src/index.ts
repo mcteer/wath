@@ -112,6 +112,9 @@ export type {
 export {
   buildManifestEnrichmentPrompt,
   buildIntegratePrompt,
+  buildDriftRemediatePrompt,
   buildValidatePrompt,
 } from "./lifecycle/prompts.js";
+export { resolveDriftRemediation, isDriftRemediation } from "./lifecycle/drift-context.js";
+export type { DriftRemediationInfo } from "./lifecycle/drift-context.js";
 export { isManifestComplete } from "./lifecycle/manifest.js";

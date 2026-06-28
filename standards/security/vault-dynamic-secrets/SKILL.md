@@ -176,6 +176,9 @@ do not work around it — surface it.
 - **VDS-009 — Disable default SA token mount.** Kubernetes Deployments MUST set
   `automountServiceAccountToken: false` on the Pod spec so only the Vault auth identity
   (bound service account) is used — not the default projected API token.
+- **VDS-010 — Deployment per namespace.** When `identity_binding.k8s_namespaces` lists
+  multiple namespaces, ship one Kubernetes `Deployment` per namespace (each in that
+  namespace) wired to the VSO-managed Secret for that environment.
 
 ## 8. What this standard does *not* mechanize (human ratification)
 
@@ -196,7 +199,7 @@ downstream, by artifacts compiled from this same standard but executed independe
 model:
 
 1. **Tier-1 static gate** — `conformance/test_conformance.py` parses what you produced and
-   asserts VDS-001…009 deterministically, alongside toolchain checks (`vault policy fmt`,
+   asserts VDS-001…010 deterministically, alongside toolchain checks (`vault policy fmt`,
    `kubeconform`). Run via `conformance/verify.sh`.
 2. **Tier-1 behavioral gate** — the sandbox proves the signed-identity → role → policy →
    dynamic-secret flow actually issues a working, expiring credential against a throwaway DB.
