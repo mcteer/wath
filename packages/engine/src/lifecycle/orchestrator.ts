@@ -20,11 +20,13 @@ import {
 } from "./manifest.js";
 import { recordAgentPr } from "./merge.js";
 import {
+  buildDriftRemediatePrompt,
   buildIntegratePrompt,
   buildCreatePrRetryPrompt,
   buildManifestEnrichmentPrompt,
   buildValidatePrompt,
 } from "./prompts.js";
+import { resolveDriftRemediation } from "./drift-context.js";
 import {
   appendHistory,
   loadApplicationState,
@@ -253,18 +255,26 @@ export async function runLifecycle(
   }
 
   let prompt: string;
+  const driftRemediation =
+    standardId && phase !== "enrich_manifest"
+      ? resolveDriftRemediation(repoRoot, standardId, state.integrations[standardId])
+      : null;
+
   switch (phase) {
     case "enrich_manifest":
       prompt = buildManifestEnrichmentPrompt(composeOnboardingContext(intent));
       break;
     case "integrate":
-      prompt = buildIntegratePrompt(composeOnboardingContext(intent), standardId!);
+      prompt = driftRemediation
+        ? buildDriftRemediatePrompt(composeOnboardingContext(intent), driftRemediation)
+        : buildIntegratePrompt(composeOnboardingContext(intent), standardId!);
       break;
     case "validate":
       prompt = buildValidatePrompt(
         composeOnboardingContext(intent),
         standardId!,
-        state.integrations[standardId!]?.work_branch ?? undefined
+        state.integrations[standardId!]?.work_branch ?? undefined,
+        driftRemediation ? { driftRemediation } : undefined
       );
       break;
     case "await_merge":
@@ -390,6 +400,7 @@ export async function runLifecycle(
     if (useSingleSessionChain) {
       const validatePrompt = buildValidatePrompt(context, standardId!, undefined, {
         sameAgentSession: true,
+        ...(driftRemediation ? { driftRemediation } : {}),
       });
       appendHistory(state, "phase_validate");
       persistState();

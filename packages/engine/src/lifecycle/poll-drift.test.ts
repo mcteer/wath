@@ -116,4 +116,47 @@ describe("pollDrift", () => {
     assert.equal(result.triggered.length, 0);
     assert.ok(result.skipped.some((s) => s.appId === appId && s.reason === "await_merge"));
   });
+
+  it("skips drifted apps with an open remediation PR", async () => {
+    process.env.CURSOR_API_KEY = "test-key";
+    process.env.GITHUB_TOKEN = "test-token";
+    const appId = "wath-drift-test/demo-app3";
+    statePath = join(repoRoot, "state/applications/wath-drift-test/demo-app3.yaml");
+    testDir = join(repoRoot, "state/applications/wath-drift-test");
+
+    writeState(repoRoot, appId, {
+      repo: "https://github.com/wath-drift-test/demo-app3",
+      wath_path: "wath.json",
+      phase: "await_merge",
+      manifest: { status: "accepted", pr_url: null },
+      integrations: {
+        "vault-dynamic-secrets": {
+          status: "pr_open",
+          standard_version: 7,
+          pr_url: "https://github.com/wath-drift-test/demo-app3/pull/9",
+          work_branch: "cursor/vault-v8",
+          integrate_agent_id: null,
+          last_verify: "unknown",
+          compliance: "drift",
+          retry_count: 0,
+        },
+      },
+      history: [],
+      updated_at: new Date().toISOString(),
+    });
+
+    const result = await pollDrift({
+      wathRoot: repoRoot,
+      triggerOnboard: async () => {
+        assert.fail("should not trigger while remediation PR is open");
+      },
+    });
+
+    assert.equal(result.triggered.length, 0);
+    assert.ok(
+      result.skipped.some(
+        (s) => s.appId === appId && (s.reason === "await_merge" || s.reason === "pr_open")
+      )
+    );
+  });
 });

@@ -40,6 +40,10 @@ export interface StandardRegistryEntry {
   rule_prefix: string;
   runtimes: string[];
   services: string[];
+  /** Notes for agents remediating to this registry version (optional). */
+  version_notes?: string;
+  /** Per-version changelog keyed by registry version number (optional). */
+  version_changelog?: Record<number, string>;
 }
 
 export interface StandardRegistry {

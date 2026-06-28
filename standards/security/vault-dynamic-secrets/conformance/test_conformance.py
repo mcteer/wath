@@ -3,7 +3,7 @@ Conformance gate for the `vault-dynamic-secrets` standard.
 
 This is the deterministic half of the standard. It is COMPILED FROM THE SAME RULES the
 agent was steered with (SKILL.md §5), but it executes independently of the model: it reads
-the artifacts the agent produced and asserts VDS-001..009 with ordinary code. The model
+the artifacts the agent produced and asserts VDS-001..010 with ordinary code. The model
 cannot talk its way past it.
 
 Each test is named for the rule it enforces, so the mapping from prose rule -> executable
@@ -223,6 +223,25 @@ def test_VDS_009_automount_service_account_token_disabled():
     for d in deployments:
         pod_spec = d.get("spec", {}).get("template", {}).get("spec", {})
         assert pod_spec.get("automountServiceAccountToken") is False,             "Deployment pod spec must set automountServiceAccountToken: false (VDS-009)"
+
+
+# ---------- VDS-010: one Deployment per bound namespace ----------
+
+def test_VDS_010_k8s_deployment_per_namespace(params):
+    if params.get("runtime") != "kubernetes":
+        pytest.skip("kubernetes-only rule")
+    namespaces = params.get("identity_binding", {}).get("k8s_namespaces", [])
+    if len(namespaces) <= 1:
+        pytest.skip("single namespace — one Deployment sufficient")
+    docs = _load_manifests()
+    deployment_namespaces = {
+        d.get("metadata", {}).get("namespace")
+        for d in docs
+        if d.get("kind") == "Deployment"
+    }
+    for ns in namespaces:
+        assert ns in deployment_namespaces, \
+            f"missing Deployment for namespace {ns!r} — integration.params lists {len(namespaces)} namespaces (VDS-010)"
 
 # ---------- VDS-008: durable verification ----------
 

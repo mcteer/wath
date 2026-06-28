@@ -146,7 +146,11 @@ wath record-merge --app org/repo --type manifest --pr https://github.com/org/rep
 wath record-merge --app org/repo --type integration --standard vault-dynamic-secrets --pr https://github.com/org/repo/pull/124
 ```
 
-When **wath-core** is running with `GITHUB_TOKEN` set, a background merge poller records merges automatically (every 30s). With `CURSOR_API_KEY` set, a drift poller audits for standard version drift (every 1 min) and launches remediation onboard runs. Before launching agents, Wath reconciles the ledger against GitHub (open Wath PRs and orphan `cursor/*` branches) so drift remediation reuses in-flight work instead of opening duplicate branches. Stale `activeRun` files from redeploys are cleared on startup. You can also poll on demand:
+When **wath-core** is running with `GITHUB_TOKEN` set, a background merge poller records merges automatically (every 30s). With `CURSOR_API_KEY` set, a drift poller audits for standard version drift (every 1 min) and launches remediation onboard runs. Before launching agents, Wath reconciles the ledger against GitHub (open Wath PRs and orphan `cursor/*` branches) so drift remediation reuses in-flight work instead of opening duplicate branches. Stale `activeRun` files from redeploys are cleared on startup.
+
+**Drift remediation** uses a dedicated agent prompt: start from `main`, read `version_notes` / `version_changelog` in `standards/registry.yaml`, run conformance, and apply a **minimal diff** — not a full re-integrate. Registry version (marketplace counter) can differ from `standard.yaml` content version; document each bump in `version_changelog`.
+
+You can also poll on demand:
 
 ```bash
 wath poll-merges

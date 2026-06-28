@@ -79,7 +79,11 @@ export function applyAuditToState(wathRoot?: string): AuditReport {
         appendHistory(state, "drift_remediation_pending", drift.standardId);
       }
     }
-    if (entry.drift.length > 0 && state.phase === "compliant") {
+    if (
+      entry.drift.length > 0 &&
+      state.phase === "compliant" &&
+      !Object.values(state.integrations).some((i) => i.status === "pr_open" && i.pr_url)
+    ) {
       state.phase = "integrate";
     }
     saveApplicationState(root, entry.appId, state);
