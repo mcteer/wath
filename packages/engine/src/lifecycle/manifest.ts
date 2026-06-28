@@ -1,4 +1,5 @@
 import type { WathSpec } from "../requirements/parser.js";
+import type { ComplianceStatus } from "./types.js";
 
 /** Heuristic: manifest has enough for integration agents to proceed. */
 export function isManifestComplete(spec: WathSpec): boolean {
@@ -36,4 +37,22 @@ export function anyIntegrationPrOpen(
   integrations: Record<string, { status: string }>
 ): boolean {
   return Object.values(integrations).some((i) => i.status === "pr_open");
+}
+
+
+/** Standard id flagged for version drift (needs remediation). */
+export function nextDriftStandardId(
+  spec: WathSpec,
+  integrations: Record<string, { compliance?: ComplianceStatus }>
+): string | undefined {
+  for (const id of Object.keys(spec.services)) {
+    if (integrations[id]?.compliance === "drift") return id;
+  }
+  return undefined;
+}
+
+export function hasDrift(
+  integrations: Record<string, { compliance?: ComplianceStatus }>
+): boolean {
+  return Object.values(integrations).some((e) => e.compliance === "drift");
 }
