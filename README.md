@@ -208,6 +208,8 @@ podman compose -f deploy/podman-compose.yml up --build -d
 curl http://127.0.0.1:8080/healthz
 ```
 
+`deploy/podman-compose.yml` bind-mounts `standards/`, `templates/`, and `examples/` from the repo — registry and standard edits apply without rebuilding the image.
+
 Full runbook: [Deploy with Podman](./docs/onboarding/deploy-podman.md). Demo scripts: [Demo rehearsal](./docs/demo/README.md).
 
 ## CLI reference

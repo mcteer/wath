@@ -30,6 +30,9 @@ podman run -d \
   -e CURSOR_API_KEY="${CURSOR_API_KEY}" \
   -e WATH_TOKEN="${WATH_TOKEN:-}" \
   -v "$(pwd)/state/applications:/app/state/applications:Z" \
+  -v "$(pwd)/standards:/app/standards:Z" \
+  -v "$(pwd)/templates:/app/templates:Z" \
+  -v "$(pwd)/examples:/app/examples:Z" \
   wath-core:local
 
 curl http://localhost:8080/health
@@ -65,7 +68,9 @@ curl -s -X POST http://localhost:8080/api/v1/lifecycle \
   -d '{"consumerPath":"examples/consumer-demo"}' | head
 ```
 
-Note: the default image includes `examples/consumer-demo` (and sibling demos), `standards/`, and `templates/`. `deploy/podman-compose.yml` bind-mounts `examples/` from the host so manifest edits apply without rebuild. Mount additional app repos at runtime if needed.
+Note: the default image includes baked-in copies of `standards/`, `templates/`, and `examples/`. **`deploy/podman-compose.yml` bind-mounts all three from the host** so registry bumps, standard edits, and template changes apply immediately — no image rebuild or container restart. The engine reads `standards/registry.yaml` from disk on every request (no in-process cache).
+
+Mount additional app repos at runtime if needed.
 
 ## Cursor / MCP clients
 
