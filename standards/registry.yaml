@@ -5,7 +5,7 @@ standards:
   - id: vault-dynamic-secrets
     path: security/vault-dynamic-secrets
     owner: security-engineering
-    version: 6
+    version: 7
     rule_prefix: VDS
     runtimes:
       - kubernetes
