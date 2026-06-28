@@ -198,7 +198,9 @@ model:
 2. **Tier-1 behavioral gate** — the sandbox proves the signed-identity → role → policy →
    dynamic-secret flow actually issues a working, expiring credential against a throwaway DB.
 3. **Tier-2** — the shipped CI workflow (VDS-008) re-runs the same gate in the team's real
-   environment.
+   environment. Consumer repos do **not** vendor `standards/` — the workflow sparse-checkouts
+   the public Wath repo and runs `conformance/verify.sh` from there (see golden
+   `.github/workflows/vault-verify.yml`).
 4. **Human ratification** — the two merge gates cover the residue from §8.
 
 The model proposes; nothing it writes reaches production without passing gates it cannot
