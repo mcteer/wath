@@ -209,7 +209,7 @@ export async function launchIntegrateValidateChain(
     retryPrompt: (attempt: number, workBranch?: string) => string;
     maxPrRetries?: number;
     onEvent?: (event: AgentStreamEvent) => void;
-    onValidateStart?: () => void | Promise<void>;
+    onValidateStart?: (integrate: AgentLaunchResult) => void | Promise<void>;
     onPrRetry?: (attempt: number) => void;
   }
 ): Promise<{ integrate: AgentLaunchResult; validate: AgentLaunchResult }> {
@@ -224,7 +224,7 @@ export async function launchIntegrateValidateChain(
     integrate = await executeAgentRun(agent, options.integratePrompt, options.onEvent);
   }
 
-  await options.onValidateStart?.();
+  await options.onValidateStart?.(integrate);
   const workBranch = integrate.branch;
 
   // Fresh agent on the integrate branch with autoCreatePR (matches pre-#36 validate behavior).

@@ -82,8 +82,15 @@ export {
   isOnboardInFlight,
   STALE_RUN_MAX_AGE_MS,
   tryClaimActiveRun,
+  toActiveRunStatusView,
+  summarizeLifecycleResult,
 } from "./lifecycle/run-progress.js";
-export type { ActiveOnboardRun, ActiveRunStatus } from "./lifecycle/run-progress.js";
+export type {
+  ActiveOnboardRun,
+  ActiveRunResultSummary,
+  ActiveRunStatus,
+  ActiveRunStatusView,
+} from "./lifecycle/run-progress.js";
 export type {
   OnboardingPhase,
   ApplicationState,

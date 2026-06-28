@@ -33,7 +33,7 @@ When the user asks to run **`wath.onboard`**, **`wath.status`**, or similar Wath
 
 1. Read `wath.json` at the repo root.
 2. **Prefer MCP:** call `wath_onboard` with `{ "repo": "<value of the repo field>", "launch": true }` unless dry-run is requested. This returns **immediately** with `{ async: true, activeRun }` where `activeRun.status` is **`running`**.
-3. **Poll progress:** call `wath_status` with the same `repo` every **15–30 seconds**. Relay `activeRun.message` to the user (integrating → validating → PR submitted). Stop when `activeRun.status` is `done` or `error`; read `activeRun.result` for the PR URL.
+3. **Poll progress:** call `wath_status` with the same `repo` every **15–30 seconds**. Relay `activeRun.message` to the user (integrating → validating → PR submitted). Read `activeRun.prUrl` and `activeRun.branch` when present. Stop when `activeRun.status` is `done` or `error`; the PR URL is on `activeRun.prUrl` or `activeRun.result.prUrl`.
 4. **Do not retry `wath.onboard` while a run is in flight.** If the tool returns `async: true`, onboarding has started — poll `wath.status` even if progress is slow. Only call `wath.onboard` again after `activeRun.status` is `error` **and** you have confirmed there is no open integration PR or orphan `cursor/*` branch to resume.
 5. **REST fallback only** when MCP is unavailable: `POST /api/v1/lifecycle/stream` with `curl -N`. Relay each `event: progress` to the user; final `event: done` has the result.
 

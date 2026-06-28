@@ -91,6 +91,8 @@ export interface LifecycleProgressUpdate {
   total: number;
   standardId?: string;
   prUrl?: string;
+  /** Integration branch once integrate completes (validate stage). */
+  branch?: string;
 }
 
 export interface AgentLaunchSummary {

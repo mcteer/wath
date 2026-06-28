@@ -3,12 +3,21 @@ import { dirname, join } from "node:path";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 
 import { resolveRepoRoot } from "../standards/registry.js";
-import type { LifecycleProgressUpdate, LifecycleResult } from "./types.js";
+import type { LifecycleProgressUpdate, LifecycleResult, OnboardingPhase } from "./types.js";
 
 export type ActiveRunStatus = "running" | "done" | "error";
 
 /** Runs older than this are treated as orphaned (e.g. after wath-core redeploy). */
 export const STALE_RUN_MAX_AGE_MS = 15 * 60 * 1000;
+
+/** Slim completion payload — no prompts or agent markdown (safe for status polling). */
+export interface ActiveRunResultSummary {
+  phase?: OnboardingPhase;
+  prUrl?: string;
+  branch?: string;
+  integrateAgentId?: string;
+  validateAgentId?: string;
+}
 
 export interface ActiveOnboardRun {
   appId: string;
@@ -19,7 +28,25 @@ export interface ActiveOnboardRun {
   total?: number;
   startedAt: string;
   updatedAt: string;
-  result?: LifecycleResult;
+  prUrl?: string;
+  branch?: string;
+  result?: ActiveRunResultSummary;
+  error?: string;
+}
+
+/** Poll-friendly activeRun view returned by wath.status (no large text fields). */
+export interface ActiveRunStatusView {
+  appId: string;
+  status: ActiveRunStatus;
+  stage?: LifecycleProgressUpdate["stage"];
+  message?: string;
+  progress?: number;
+  total?: number;
+  startedAt: string;
+  updatedAt: string;
+  prUrl?: string;
+  branch?: string;
+  result?: ActiveRunResultSummary;
   error?: string;
 }
 
@@ -37,13 +64,79 @@ export function loadActiveRun(
 ): ActiveOnboardRun | null {
   const path = runProgressPath(wathRoot, appId);
   if (!existsSync(path)) return null;
-  return parseYaml(readFileSync(path, "utf8")) as ActiveOnboardRun;
+  const run = parseYaml(readFileSync(path, "utf8")) as ActiveOnboardRun & {
+    result?: ActiveRunResultSummary | LifecycleResult;
+  };
+  return normalizeStoredActiveRun(run);
 }
 
 function saveActiveRun(run: ActiveOnboardRun, wathRoot: string = resolveRepoRoot()): void {
   const path = runProgressPath(wathRoot, run.appId);
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, stringifyYaml(run, { lineWidth: 0 }), "utf8");
+}
+
+function isFullLifecycleResult(value: unknown): value is LifecycleResult {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "prompt" in value &&
+    typeof (value as LifecycleResult).prompt === "string"
+  );
+}
+
+export function summarizeLifecycleResult(result: LifecycleResult): ActiveRunResultSummary {
+  return {
+    phase: result.phase,
+    prUrl: result.agent?.prUrl ?? result.integrateAgent?.prUrl ?? result.existingPrUrl,
+    branch: result.agent?.branch ?? result.integrateAgent?.branch,
+    integrateAgentId: result.integrateAgent?.agentId,
+    validateAgentId: result.agent?.agentId,
+  };
+}
+
+function normalizeStoredActiveRun(
+  run: ActiveOnboardRun & { result?: ActiveRunResultSummary | LifecycleResult }
+): ActiveOnboardRun {
+  const summary = run.result
+    ? isFullLifecycleResult(run.result)
+      ? summarizeLifecycleResult(run.result)
+      : run.result
+    : undefined;
+  return {
+    appId: run.appId,
+    status: run.status,
+    stage: run.stage,
+    message: run.message,
+    progress: run.progress,
+    total: run.total,
+    startedAt: run.startedAt,
+    updatedAt: run.updatedAt,
+    error: run.error,
+    prUrl: run.prUrl ?? summary?.prUrl,
+    branch: run.branch ?? summary?.branch,
+    ...(summary ? { result: summary } : {}),
+  };
+}
+
+/** Strip legacy full results before returning via wath.status / REST. */
+export function toActiveRunStatusView(run: ActiveOnboardRun | null): ActiveRunStatusView | null {
+  if (!run) return null;
+  const normalized = normalizeStoredActiveRun(run);
+  return {
+    appId: normalized.appId,
+    status: normalized.status,
+    stage: normalized.stage,
+    message: normalized.message,
+    progress: normalized.progress,
+    total: normalized.total,
+    startedAt: normalized.startedAt,
+    updatedAt: normalized.updatedAt,
+    prUrl: normalized.prUrl,
+    branch: normalized.branch,
+    error: normalized.error,
+    ...(normalized.result ? { result: normalized.result } : {}),
+  };
 }
 
 export function beginActiveRun(appId: string, wathRoot?: string): ActiveOnboardRun {
@@ -121,6 +214,8 @@ export function recordActiveRunProgress(
     progress: update.progress,
     total: update.total,
     updatedAt: new Date().toISOString(),
+    ...(update.prUrl ? { prUrl: update.prUrl } : {}),
+    ...(update.branch ? { branch: update.branch } : {}),
   };
   saveActiveRun(run, root);
 }
@@ -133,10 +228,8 @@ export function completeActiveRun(
   const root = wathRoot ?? resolveRepoRoot();
   const existing = loadActiveRun(appId, root);
   const now = new Date().toISOString();
-  const prUrl =
-    result.existingPrUrl ??
-    result.agent?.prUrl ??
-    result.integrateAgent?.prUrl;
+  const summary = summarizeLifecycleResult(result);
+  const prUrl = summary.prUrl;
   const run: ActiveOnboardRun = {
     appId,
     status: "done",
@@ -146,7 +239,9 @@ export function completeActiveRun(
     total: existing?.total ?? 3,
     startedAt: existing?.startedAt ?? now,
     updatedAt: now,
-    result,
+    prUrl,
+    branch: summary.branch ?? existing?.branch,
+    result: summary,
   };
   saveActiveRun(run, root);
 }
