@@ -37,9 +37,29 @@ export function standardVerifyRepoPath(standard: ResolvedStandard): string {
 }
 
 /** Markdown checklist embedded in the agent onboarding prompt. */
-export function artifactChecklistMarkdown(standard: ResolvedStandard): string {
-  const { artifacts } = resolveOnboardingConfig(standard);
-  return artifacts.map((p) => `- [ ] \`${p}\``).join("\n");
+export function artifactChecklistMarkdown(
+  standard: ResolvedStandard,
+  options: { includePurpose?: boolean } = {}
+): string {
+  const onboarding = resolveOnboardingConfig(standard);
+  const { artifacts, artifact_purposes: purposes } = onboarding;
+  return artifacts
+    .map((path) => {
+      const purpose = purposes?.[path];
+      if (options.includePurpose && purpose) {
+        return `- [ ] \`${path}\` — ${purpose}`;
+      }
+      return `- [ ] \`${path}\``;
+    })
+    .join("\n");
+}
+
+/** Artifact checklist with purposes — for PR body "Artifacts in this PR" section. */
+export function artifactPrSectionMarkdown(standard: ResolvedStandard): string {
+  const checklist = artifactChecklistMarkdown(standard, { includePurpose: true });
+  return `${checklist}
+- [ ] **Application code changes** — remove static credential reads; keep env var names if VSO populates them (VDS-001)
+- [ ] **Removed static secrets** — no committed \`Secret\` manifests, DSNs, or passwords in compose/env files`;
 }
 
 /** PR template path inside the consumer repo. */

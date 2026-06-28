@@ -18,14 +18,16 @@
 
 ### Artifacts in this PR
 
-- [ ] `integration.params.json` (schema-valid, emitted first)
-- [ ] `vault/policy.hcl` (least-privilege, rendered from params)
-- [ ] `vault/auth-kubernetes-role.json` (or equivalent auth role config)
-- [ ] `k8s/vso-dynamic-secret.yaml` (or Agent Injector annotations)
-- [ ] `k8s/deployment.yaml` updated — **no static DSN/password in env or manifests**
-- [ ] Application diff — static credential pattern removed
-- [ ] `.github/workflows/vault-verify.yml` (VDS-008 durable verification)
-- [ ] All static DSN / embedded password patterns removed (VDS-001)
+<!-- Keep the purpose line for each file — one sentence after the em dash. -->
+
+- [ ] `integration.params.json` — Typed source of truth — app name, Vault creds path, TTLs, K8s identity binding (schema-valid; render all other artifacts from this)
+- [ ] `vault/policy.hcl` — Least-privilege Vault policy — read on `database/creds/<role>` only; no path wildcards (VDS-004)
+- [ ] `vault/auth-kubernetes-role.json` — Kubernetes auth role binding — ties this app's service account and namespace to the policy (VDS-006)
+- [ ] `k8s/vso-dynamic-secret.yaml` — Vault Secrets Operator CR — syncs short-lived DB credentials from Vault into a Kubernetes Secret
+- [ ] `k8s/deployment.yaml` — App Deployment wired to the VSO-managed Secret — no static `DATABASE_URL` or password env values (VDS-001)
+- [ ] `.github/workflows/vault-verify.yml` — CI gate re-running the standard's conformance suite on every PR (VDS-008)
+- [ ] **Application code changes** — remove static credential reads; keep env var names if VSO populates them (VDS-001)
+- [ ] **Removed static secrets** — no committed `Secret` manifests, DSNs, or passwords in compose/env files
 
 ### Verification evidence
 

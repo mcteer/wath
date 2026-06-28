@@ -8,6 +8,8 @@ export interface StandardOnboardingSandbox {
 /** Per-standard onboarding metadata — keeps engine generic across marketplace standards. */
 export interface StandardOnboarding {
   artifacts: string[];
+  /** One-line purpose per artifact path for PR descriptions and agent prompts. */
+  artifact_purposes?: Record<string, string>;
   golden_fixture?: string;
   golden_params?: string;
   sandbox?: StandardOnboardingSandbox;

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { ResolvedStandard } from "../types.js";
-import { prTemplateRepoPath } from "./artifacts.js";
+import { artifactPrSectionMarkdown, prTemplateRepoPath } from "./artifacts.js";
 
 /** Load the consumer onboarding PR template from Wath templates. */
 export function loadOnboardingPrTemplate(
@@ -26,6 +26,11 @@ export function prSubmissionInstructions(
 When opening the PR (\`autoCreatePR\`), the description MUST follow the structure of
 \`${templatePath}\`. Complete every section; do not omit verification evidence
 or admin prerequisites.
+
+In **Artifacts in this PR**, use the checklist below — keep each file's purpose
+(one line after the em dash). Do not reduce entries to bare filenames.
+
+${artifactPrSectionMarkdown(standard)}
 
 If GitHub pre-fills the template from the branch, edit it in place. Otherwise paste
 the structure below into the PR body:
