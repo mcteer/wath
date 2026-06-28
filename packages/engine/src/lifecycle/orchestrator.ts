@@ -64,7 +64,9 @@ import {
   isActiveRunStale,
   loadActiveRun,
   recordActiveRunProgress,
+  toActiveRunStatusView,
   tryClaimActiveRun,
+  type ActiveRunStatusView,
 } from "./run-progress.js";
 
 function findExistingOpenPr(
@@ -421,7 +423,14 @@ export async function runLifecycle(
     if (phase === "integrate" && standardId && !orphanIntegrateBranch) {
       await notifyProgress(options, appId, integratingProgress(standardId));
     } else if (phase === "validate" && standardId) {
-      await notifyProgress(options, appId, validatingProgress(standardId));
+      const branch =
+        (loadApplicationState(repoRoot, appId) ?? state).integrations[standardId]?.work_branch ??
+        undefined;
+      await notifyProgress(
+        options,
+        appId,
+        validatingProgress(standardId, branch ? { branch } : undefined)
+      );
     }
 
     const useSingleSessionChain =
@@ -434,7 +443,11 @@ export async function runLifecycle(
       !orphanIntegrateBranch;
 
     if (orphanIntegrateBranch && phase === "integrate" && standardId && options.launch) {
-      await notifyProgress(options, appId, validatingProgress(standardId));
+      await notifyProgress(
+        options,
+        appId,
+        validatingProgress(standardId, { branch: orphanIntegrateBranch })
+      );
       const prRetries = maxPrRetries(options);
       const validatePrompt = buildValidatePrompt(context, standardId, orphanIntegrateBranch, {
         ...(driftRemediation ? { driftRemediation } : {}),
@@ -502,8 +515,14 @@ export async function runLifecycle(
         config,
         target: agentTarget,
         onEvent: onAgentEvent,
-        onValidateStart: async () => {
-          await notifyProgress(options, appId, validatingProgress(standardId!));
+        onValidateStart: async (integrate) => {
+          const branch =
+            integrate.branch ?? (await resolveIntegrateBranch(resolvedConsumer.repo, integrate));
+          await notifyProgress(
+            options,
+            appId,
+            validatingProgress(standardId!, branch ? { branch } : undefined)
+          );
         },
         onPrRetry: (attempt) => {
           console.error(
@@ -637,7 +656,7 @@ export function getLifecycleStatus(
   appId: string;
   state: ApplicationState | null;
   spec?: ReturnType<typeof parseWathSpec>;
-  activeRun: ReturnType<typeof loadActiveRun>;
+  activeRun: ActiveRunStatusView | null;
 } {
   const repoRoot = resolveRepoRoot();
 
@@ -646,7 +665,7 @@ export function getLifecycleStatus(
     return {
       appId,
       state: loadApplicationState(repoRoot, appId),
-      activeRun: loadActiveRun(appId, repoRoot),
+      activeRun: toActiveRunStatusView(loadActiveRun(appId, repoRoot)),
     };
   }
 
@@ -654,7 +673,7 @@ export function getLifecycleStatus(
     return {
       appId: consumerPathOrAppId,
       state: loadApplicationState(repoRoot, consumerPathOrAppId),
-      activeRun: loadActiveRun(consumerPathOrAppId, repoRoot),
+      activeRun: toActiveRunStatusView(loadActiveRun(consumerPathOrAppId, repoRoot)),
     };
   }
 
@@ -669,7 +688,7 @@ export function getLifecycleStatus(
     appId,
     state: loadApplicationState(repoRoot, appId),
     spec,
-    activeRun: loadActiveRun(appId, repoRoot),
+    activeRun: toActiveRunStatusView(loadActiveRun(appId, repoRoot)),
   };
 }
 

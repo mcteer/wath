@@ -9,6 +9,7 @@ import {
   resolveApplicationId,
   resolveConsumer,
   runLifecycle,
+  toActiveRunStatusView,
   tryClaimActiveRun,
 } from "@wath/engine";
 
@@ -66,7 +67,7 @@ export const WATH_TOOL_DEFINITIONS = [
   {
     name: "wath.status",
     description:
-      "Return onboarding lifecycle state and activeRun progress (stage, message) while onboarding is in flight. Read wath.json and pass repo (the repo field).",
+      "Return onboarding lifecycle state and activeRun progress (stage, message, prUrl, branch) while onboarding is in flight. Read wath.json and pass repo (the repo field). Response is poll-safe — no large prompt or agent text blobs.",
     inputSchema: {
       type: "object",
       properties: {
@@ -221,7 +222,7 @@ async function executeOnboard(
     return {
       async: true,
       appId,
-      activeRun: claim.run,
+      activeRun: toActiveRunStatusView(claim.run),
       skipped: true,
       skipReason: "onboard_in_progress",
       message:
@@ -238,7 +239,7 @@ async function executeOnboard(
   return {
     async: true,
     appId,
-    activeRun: claim.run,
+    activeRun: toActiveRunStatusView(claim.run),
     message:
       "Onboarding started. Poll wath.status every 15–30 seconds and relay activeRun.message to the user until activeRun.status is done or error. Do not call wath.onboard again while status is running.",
   };

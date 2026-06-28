@@ -168,7 +168,7 @@ wath status https://github.com/org/my-app
 # or: curl "http://localhost:8080/api/v1/status?target=org/repo"
 ```
 
-In Cursor: MCP tool **`wath.status`**. When all integrations are merged, phase is **`compliant`**.
+In Cursor: MCP tool **`wath.status`**. Poll `activeRun.message`, `activeRun.progress`, and (once integrate finishes) `activeRun.branch` / `activeRun.prUrl`. Responses omit large prompt or agent text blobs so polling stays JSON-safe. When all integrations are merged, phase is **`compliant`**.
 
 Update `wath.json` and run **`wath.onboard`** again when the stack changes, services are added, or `wath audit` reports drift.
 

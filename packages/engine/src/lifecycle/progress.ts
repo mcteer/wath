@@ -16,12 +16,17 @@ export function integratingProgress(standardId: string): LifecycleProgressUpdate
   };
 }
 
-export function validatingProgress(standardId: string): LifecycleProgressUpdate {
+export function validatingProgress(
+  standardId: string,
+  extras?: { branch?: string; prUrl?: string }
+): LifecycleProgressUpdate {
   return {
     stage: "validating",
     progress: 2,
     total: ONBOARD_PROGRESS_TOTAL,
     standardId,
+    ...(extras?.branch ? { branch: extras.branch } : {}),
+    ...(extras?.prUrl ? { prUrl: extras.prUrl } : {}),
     message: `Validating ${standardId} — running conformance checks and opening a PR…`,
   };
 }
