@@ -117,15 +117,14 @@ export function resolveMcpToolName(name: string): string {
   return MCP_TOOL_ALIASES[name] ?? name;
 }
 
-/** List canonical tools plus underscore aliases for MCP clients that rename them. */
+/** Cursor displays and calls tools with underscores; expose those names in ListTools. */
 type McpToolDefinition = (typeof WATH_TOOL_DEFINITIONS)[number];
 
 export function listMcpToolDefinitions(): McpToolDefinition[] {
-  return WATH_TOOL_DEFINITIONS.flatMap((tool) => {
-    const underscoreName = tool.name.replace(/\./g, "_");
-    if (underscoreName === tool.name) return [tool];
-    return [tool, { ...tool, name: underscoreName } as McpToolDefinition];
-  });
+  return WATH_TOOL_DEFINITIONS.map((tool) => ({
+    ...tool,
+    name: tool.name.replace(/\./g, "_"),
+  })) as McpToolDefinition[];
 }
 
 export interface WathToolContext {

@@ -12,9 +12,13 @@ describe("resolveMcpToolName", () => {
 });
 
 describe("listMcpToolDefinitions", () => {
-  it("includes underscore aliases for dotted tool names", () => {
+  it("registers underscore names for Cursor MCP settings", () => {
     const names: string[] = listMcpToolDefinitions().map((t) => t.name);
-    assert.ok(names.some((n) => n === "wath.onboard"));
-    assert.ok(names.some((n) => n === "wath_onboard"));
+    assert.deepEqual(names, [
+      "wath_onboard",
+      "wath_status",
+      "wath_record_merge",
+      "wath_audit",
+    ]);
   });
 });
