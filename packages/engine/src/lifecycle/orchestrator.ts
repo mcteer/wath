@@ -4,6 +4,7 @@ import {
   launchOnboardingAgent,
   launchValidateWithPrRetries,
 } from "../agent/client.js";
+import { ensureIntegrationPrUrl } from "../agent/create-pr.js";
 import { composeOnboardingContext } from "../onboarding/pipeline.js";
 import { materializeConsumerConfig, resolveConsumerRepoUrl } from "../onboarding/materialize.js";
 import { resolveConsumer } from "../onboarding/resolve-consumer.js";
@@ -124,6 +125,25 @@ function awaitMergePrompt(state: ApplicationState): string {
   }
   lines.push("", "After merge, run `wath record-merge` or MCP `wath.record_merge`.");
   return lines.join("\n");
+}
+
+
+async function resolveIntegrationPrUrl(
+  agentPrUrl: string | undefined,
+  branch: string | undefined,
+  context: ReturnType<typeof composeOnboardingContext>,
+  standardId: string,
+  config: ReturnType<typeof loadConfig>
+): Promise<string | undefined> {
+  if (agentPrUrl) return agentPrUrl;
+  if (!branch) return undefined;
+  return ensureIntegrationPrUrl({
+    repoUrl: context.wathSpec.repo,
+    branch,
+    standardId,
+    repoRoot: context.repoRoot,
+    githubToken: config.githubToken,
+  });
 }
 
 function maxPrRetries(options: LifecycleOptions): number {
@@ -385,10 +405,18 @@ export async function runLifecycle(
       }
       appendHistory(state, "integrate_complete", standardId);
 
-      if (chain.validate.prUrl) {
-        recordAgentPr(appId, "integration", chain.validate.prUrl, standardId);
+      const prUrl = await resolveIntegrationPrUrl(
+        chain.validate.prUrl,
+        branch ?? chain.validate.branch ?? state.integrations[standardId!]?.work_branch ?? undefined,
+        context,
+        standardId!,
+        config
+      );
+      if (prUrl) {
+        if (!chain.validate.prUrl) appendHistory(state, "pr_created_via_api", prUrl);
+        recordAgentPr(appId, "integration", prUrl, standardId);
         result.state = loadApplicationState(repoRoot, appId)!;
-        await notifyProgress(options, prSubmittedProgress(standardId!, chain.validate.prUrl));
+        await notifyProgress(options, prSubmittedProgress(standardId!, prUrl));
       } else {
         recordPrCreateFailure(state, standardId!, prRetries);
         persistState();
@@ -458,14 +486,29 @@ export async function runLifecycle(
     if (phase === "enrich_manifest" && agentResult.prUrl) {
       recordAgentPr(appId, "manifest", agentResult.prUrl);
       result.state = loadApplicationState(repoRoot, appId)!;
-    } else if (phase === "validate" && agentResult.prUrl && standardId) {
-      recordAgentPr(appId, "integration", agentResult.prUrl, standardId);
-      result.state = loadApplicationState(repoRoot, appId)!;
-      await notifyProgress(options, prSubmittedProgress(standardId, agentResult.prUrl));
     } else if (phase === "validate" && standardId) {
-      recordPrCreateFailure(state, standardId, prRetries);
-      persistState();
-      result.state = state;
+      const branch =
+        validateBranch ??
+        agentResult.branch ??
+        state.integrations[standardId]?.work_branch ??
+        undefined;
+      const prUrl = await resolveIntegrationPrUrl(
+        agentResult.prUrl,
+        branch,
+        context,
+        standardId,
+        config
+      );
+      if (prUrl) {
+        if (!agentResult.prUrl) appendHistory(state, "pr_created_via_api", prUrl);
+        recordAgentPr(appId, "integration", prUrl, standardId);
+        result.state = loadApplicationState(repoRoot, appId)!;
+        await notifyProgress(options, prSubmittedProgress(standardId, prUrl));
+      } else {
+        recordPrCreateFailure(state, standardId, prRetries);
+        persistState();
+        result.state = state;
+      }
     } else if (phase === "integrate") {
       if (standardId && state.integrations[standardId]) {
         state.integrations[standardId].integrate_agent_id = agentResult.agentId;

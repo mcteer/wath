@@ -7,6 +7,7 @@ export interface WathConfig {
   hashicorpDocsMcpUrl: string | undefined;
   internalDocsMcpUrl: string | undefined;
   wathMcpUrl: string | undefined;
+  githubToken: string | undefined;
 }
 
 export function loadConfig(): WathConfig {
@@ -19,6 +20,7 @@ export function loadConfig(): WathConfig {
       "https://developer.hashicorp.com/api/mcp",
     internalDocsMcpUrl: process.env.WATH_MCP_INTERNAL_DOCS_URL?.trim(),
     wathMcpUrl: process.env.WATH_MCP_URL?.trim(),
+    githubToken: process.env.GITHUB_TOKEN?.trim() || undefined,
   };
 }
 
