@@ -63,7 +63,7 @@ wath-core runs a background poller every 30s when `GITHUB_TOKEN` (or `GH_TOKEN`)
 
 ### Automatic drift remediation
 
-When `CURSOR_API_KEY` is set, wath-core runs a drift poller every 5 minutes (configurable via `WATH_DRIFT_POLL_INTERVAL_MS`). It runs `wath audit --apply`, flags apps whose recorded `standard_version` lags the registry, and launches async onboard runs to open remediation PRs. Skips apps already in `await_merge` or with an onboard run in flight. Set `WATH_DRIFT_POLL_ENABLED=0` to disable.
+When `CURSOR_API_KEY` is set, wath-core runs a drift poller every 1 minute (configurable via `WATH_DRIFT_POLL_INTERVAL_MS`). It runs `wath audit --apply`, flags apps whose recorded `standard_version` lags the registry, and launches async onboard runs to open remediation PRs. Skips apps already in `await_merge` or with an onboard run in flight. Set `WATH_DRIFT_POLL_ENABLED=0` to disable.
 
 ### Example: dry-run lifecycle
 
