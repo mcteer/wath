@@ -64,6 +64,7 @@ import {
   isActiveRunStale,
   loadActiveRun,
   recordActiveRunProgress,
+  tryClaimActiveRun,
 } from "./run-progress.js";
 
 function findExistingOpenPr(
@@ -345,7 +346,19 @@ export async function runLifecycle(
   }
 
   try {
-    if (options.trackProgress !== false) {
+    if (options.trackProgress !== false && ownsLock) {
+      const claim = tryClaimActiveRun(appId, repoRoot);
+      if (!claim.claimed) {
+        const fresh = loadApplicationState(repoRoot, appId) ?? state;
+        return finishTrackedRun(
+          appId,
+          options,
+          skippedLaunchResult(appId, fresh, "onboard_in_progress", undefined, {
+            resolvedConsumer: result.resolvedConsumer,
+          })
+        );
+      }
+    } else if (options.trackProgress !== false) {
       const active = loadActiveRun(appId, repoRoot);
       if (!active || active.status !== "running" || isActiveRunStale(active)) {
         beginActiveRun(appId, repoRoot);
@@ -372,12 +385,6 @@ export async function runLifecycle(
       );
     }
 
-    if (phase === "integrate" && standardId) {
-      await notifyProgress(options, appId, integratingProgress(standardId));
-    } else if (phase === "validate" && standardId) {
-      await notifyProgress(options, appId, validatingProgress(standardId));
-    }
-
     const apiKey = requireApiKey(config);
     const agentTarget = options.local
       ? { mode: "local" as const, cwd: context.consumerRoot }
@@ -389,13 +396,84 @@ export async function runLifecycle(
       }
     };
 
+    let orphanIntegrateBranch: string | undefined;
+    if (phase === "integrate" && standardId && agentTarget.mode === "cloud") {
+      orphanIntegrateBranch =
+        freshBeforeLaunch.integrations[standardId]?.work_branch ??
+        (await discoverIntegrateBranch(agentTarget.repoUrl).catch(() => undefined));
+      if (orphanIntegrateBranch) {
+        const entry = state.integrations[standardId];
+        if (entry && entry.work_branch !== orphanIntegrateBranch) {
+          entry.work_branch = orphanIntegrateBranch;
+          entry.status = "pending";
+          appendHistory(state, "integrate_branch_reused", orphanIntegrateBranch);
+          persistState();
+        }
+        console.error(
+          `[wath] orphan integrate branch ${orphanIntegrateBranch} — validate-only, skipping new integrate agent`
+        );
+      }
+    }
+
+    if (phase === "integrate" && standardId && !orphanIntegrateBranch) {
+      await notifyProgress(options, appId, integratingProgress(standardId));
+    } else if (phase === "validate" && standardId) {
+      await notifyProgress(options, appId, validatingProgress(standardId));
+    }
+
     const useSingleSessionChain =
       phase === "integrate" &&
       options.launch &&
       options.throughValidate !== false &&
       !options._chainValidate &&
       agentTarget.mode === "cloud" &&
-      Boolean(standardId);
+      Boolean(standardId) &&
+      !orphanIntegrateBranch;
+
+    if (orphanIntegrateBranch && phase === "integrate" && standardId && options.launch) {
+      await notifyProgress(options, appId, validatingProgress(standardId));
+      const prRetries = maxPrRetries(options);
+      const validatePrompt = buildValidatePrompt(context, standardId, orphanIntegrateBranch, {
+        ...(driftRemediation ? { driftRemediation } : {}),
+      });
+      appendHistory(state, "phase_validate");
+      persistState();
+
+      const agentResult = await launchValidateWithPrRetries({
+        apiKey,
+        validatePrompt,
+        retryPrompt: (attempt, workBranch) =>
+          buildCreatePrRetryPrompt(
+            context,
+            standardId,
+            workBranch ?? orphanIntegrateBranch,
+            attempt
+          ),
+        workBranch: orphanIntegrateBranch,
+        startingRef: orphanIntegrateBranch,
+        maxPrRetries: prRetries,
+        config,
+        target: agentTarget,
+        onEvent: onAgentEvent,
+        onPrRetry: (attempt) => {
+          console.error(
+            `[wath] PR not detected after validate (attempt ${attempt}/${prRetries - 1}), retrying…`
+          );
+        },
+      });
+
+      result.agent = agentResult;
+      if (agentResult.prUrl) {
+        recordAgentPr(appId, "integration", agentResult.prUrl, standardId);
+        result.state = loadApplicationState(repoRoot, appId)!;
+        await notifyProgress(options, appId, prSubmittedProgress(standardId, agentResult.prUrl));
+      } else {
+        recordPrCreateFailure(state, standardId, prRetries);
+        persistState();
+        result.state = state;
+      }
+      return finishTrackedRun(appId, options, result);
+    }
 
     if (useSingleSessionChain) {
       const validatePrompt = buildValidatePrompt(context, standardId!, undefined, {

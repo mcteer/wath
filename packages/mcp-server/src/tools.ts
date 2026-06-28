@@ -1,8 +1,8 @@
 import type { LifecycleProgressUpdate, OnboardingPhase } from "@wath/engine";
 import {
   audit,
-  beginActiveRun,
   getLifecycleStatus,
+  isOnboardInFlight,
   loadActiveRun,
   pollMergedPrs,
   pollDrift,
@@ -216,8 +216,8 @@ async function executeOnboard(
   }
 
   const appId = await resolveOnboardAppId(args);
-  const active = loadActiveRun(appId);
-  if (active?.status === "running") {
+  if (isOnboardInFlight(appId)) {
+    const active = loadActiveRun(appId)!;
     return {
       async: true,
       appId,
@@ -227,7 +227,6 @@ async function executeOnboard(
     };
   }
 
-  beginActiveRun(appId);
   void runLifecycle(intent, options).catch((err: unknown) => {
     console.error(`[wath] async onboard failed for ${appId}:`, err);
   });

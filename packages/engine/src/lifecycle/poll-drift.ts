@@ -4,7 +4,7 @@ import { applyAuditToState } from "./audit.js";
 import { hasAwaitableOpenPr } from "./phase.js";
 import { runLifecycle } from "./orchestrator.js";
 import { reconcileInFlightArtifacts } from "./reconcile-github.js";
-import { isActiveRunStale, loadActiveRun } from "./run-progress.js";
+import { isOnboardInFlight } from "./run-progress.js";
 import { loadApplicationState } from "./state.js";
 import type { AuditEntry, AuditReport } from "./types.js";
 
@@ -51,8 +51,7 @@ async function shouldSkipDriftLaunch(
 
   const { state: synced } = await reconcileInFlightArtifacts(wathRoot, appId, state);
 
-  const active = loadActiveRun(appId, wathRoot);
-  if (active?.status === "running" && !isActiveRunStale(active)) {
+  if (isOnboardInFlight(appId, wathRoot)) {
     return { appId, reason: "onboard_in_progress" };
   }
 
