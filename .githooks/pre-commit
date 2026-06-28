@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+# Reject commits on main/master. See .cursor/rules/branch-first.mdc
+
+branch="$(git branch --show-current 2>/dev/null || true)"
+
+case "$branch" in
+  main|master)
+    echo "pre-commit: commits on '$branch' are blocked. Create a branch first:" >&2
+    echo "  git checkout -b feat/<short-description>" >&2
+    exit 1
+    ;;
+esac
+
+exit 0

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": ".cursor/hooks/block-edits-on-main.sh",
+        "matcher": "Write|StrReplace|EditNotebook|Delete",
+        "failClosed": true
+      }
+    ]
+  }
+}

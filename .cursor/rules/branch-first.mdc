@@ -11,13 +11,25 @@ Every code change follows this cycle. **No exceptions.**
 branch → commit → push → PR → merge (squash) → delete branch → pull main
 ```
 
+## Enforcement (not optional)
+
+This repo **blocks** edits and commits on `main`/`master`:
+
+- **Cursor hook** (`.cursor/hooks.json`): `Write`, `StrReplace`, `EditNotebook`, and `Delete` are denied on `main`/`master`.
+- **Git hook** (`.githooks/pre-commit`): commits on `main`/`master` are rejected.
+
+Run once per clone: `./scripts/setup-git-hooks.sh`
+
 ## Before any edit
 
-1. `git branch --show-current` — if on `main`/`master`, create a branch first:
+1. **First action** on any coding task: `git branch --show-current`
+2. If on `main`/`master`, **stop** — create a branch **before** any file edit:
    ```bash
    git checkout -b feat/<short-description>
    ```
-2. **One change set = one branch = one PR.** Do not pile unrelated work on the same branch.
+3. **One change set = one branch = one PR.** Do not pile unrelated work on the same branch.
+
+Do not say you will branch "going forward." Branch first, or the hooks block you.
 
 ## After opening a PR
 
