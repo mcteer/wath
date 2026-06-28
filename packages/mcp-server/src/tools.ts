@@ -1,15 +1,15 @@
 import type { LifecycleProgressUpdate, OnboardingPhase } from "@wath/engine";
 import {
   audit,
+  failActiveRun,
   getLifecycleStatus,
-  isOnboardInFlight,
-  loadActiveRun,
   pollMergedPrs,
   pollDrift,
   recordMerge,
   resolveApplicationId,
   resolveConsumer,
   runLifecycle,
+  tryClaimActiveRun,
 } from "@wath/engine";
 
 import { getConsumerRepoHeader } from "./request-context.js";
@@ -216,27 +216,31 @@ async function executeOnboard(
   }
 
   const appId = await resolveOnboardAppId(args);
-  if (isOnboardInFlight(appId)) {
-    const active = loadActiveRun(appId)!;
+  const claim = tryClaimActiveRun(appId);
+  if (!claim.claimed) {
     return {
       async: true,
       appId,
-      activeRun: active,
+      activeRun: claim.run,
       skipped: true,
       skipReason: "onboard_in_progress",
+      message:
+        "Onboarding already in flight. Poll wath.status — do not call wath.onboard again until activeRun.status is done or error.",
     };
   }
 
   void runLifecycle(intent, options).catch((err: unknown) => {
-    console.error(`[wath] async onboard failed for ${appId}:`, err);
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[wath] async onboard failed for ${appId}:`, message);
+    failActiveRun(appId, message);
   });
 
   return {
     async: true,
     appId,
-    activeRun: loadActiveRun(appId),
+    activeRun: claim.run,
     message:
-      "Onboarding started. Poll wath.status every 15–30 seconds and relay activeRun.message to the user until activeRun.status is done or error.",
+      "Onboarding started. Poll wath.status every 15–30 seconds and relay activeRun.message to the user until activeRun.status is done or error. Do not call wath.onboard again while status is running.",
   };
 }
 

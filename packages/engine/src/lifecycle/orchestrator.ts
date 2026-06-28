@@ -347,16 +347,19 @@ export async function runLifecycle(
 
   try {
     if (options.trackProgress !== false && ownsLock) {
-      const claim = tryClaimActiveRun(appId, repoRoot);
-      if (!claim.claimed) {
-        const fresh = loadApplicationState(repoRoot, appId) ?? state;
-        return finishTrackedRun(
-          appId,
-          options,
-          skippedLaunchResult(appId, fresh, "onboard_in_progress", undefined, {
-            resolvedConsumer: result.resolvedConsumer,
-          })
-        );
+      const existing = loadActiveRun(appId, repoRoot);
+      if (!(existing?.status === "running" && !isActiveRunStale(existing))) {
+        const claim = tryClaimActiveRun(appId, repoRoot);
+        if (!claim.claimed) {
+          const fresh = loadApplicationState(repoRoot, appId) ?? state;
+          return finishTrackedRun(
+            appId,
+            options,
+            skippedLaunchResult(appId, fresh, "onboard_in_progress", undefined, {
+              resolvedConsumer: result.resolvedConsumer,
+            })
+          );
+        }
       }
     } else if (options.trackProgress !== false) {
       const active = loadActiveRun(appId, repoRoot);
