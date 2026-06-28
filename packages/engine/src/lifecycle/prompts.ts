@@ -166,5 +166,39 @@ ${prSubmissionInstructions(context.repoRoot, standard)}
 `;
 }
 
+/** Retry after validate finished but PR URL was not returned. */
+export function buildCreatePrRetryPrompt(
+  context: OnboardingContext,
+  standardId: string,
+  workBranch: string,
+  attempt: number
+): string {
+  const spec = context.wathSpec;
+  const standard = resolveStandard(context.repoRoot, standardId);
+
+  return `# Wath PR creation retry (attempt ${attempt})
+
+Integration and verification on **${standardId}** are already on branch \`${workBranch}\`.
+
+**Do NOT** re-integrate, re-run the full conformance suite, or create a new branch.
+
+## Required action
+
+Open **one PR** from \`${workBranch}\` → \`main\` on ${spec.repo}:
+
+\`\`\`bash
+gh pr create --base main --head ${workBranch} --title "Wath onboarding: ${standardId} for <app from integration.params.json>"
+\`\`\`
+
+Use the onboarding PR template for the body. Include verification evidence if \`.wath/verify-summary.json\` exists.
+
+${prSubmissionInstructions(context.repoRoot, standard)}
+
+## Response
+
+End with the PR URL (e.g. \`https://github.com/.../pull/N\`). If \`gh pr create\` fails, diagnose the error and retry until it succeeds.
+`;
+}
+
 /** Re-export legacy full onboarding prompt for single-shot runs. */
 export { buildOnboardingPrompt } from "../onboarding/prompt.js";
