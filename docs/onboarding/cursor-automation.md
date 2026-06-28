@@ -60,7 +60,7 @@ When **wath-core** is deployed with `GITHUB_TOKEN` in `deploy/.env`, a backgroun
 
 ## Drift remediation (automatic in wath-core)
 
-When **wath-core** has `CURSOR_API_KEY` set, a drift poller runs every 5 minutes: `wath audit --apply` plus async `wath.onboard` for apps behind the current standard version. Skips apps awaiting merge or already onboarding.
+When **wath-core** has `CURSOR_API_KEY` set, a drift poller runs every 1 minute: `wath audit --apply` plus async `wath.onboard` for apps behind the current standard version. Skips apps awaiting merge or already onboarding.
 
 ## Automation: poll open PRs (optional external fallback)
 
