@@ -217,13 +217,25 @@ export async function launchIntegrateValidateChain(
     throw new Error("launchIntegrateValidateChain requires cloud target");
   }
 
-  await using agent = await Agent.create(cloudAgentOptions(options, false));
+  let integrateAgentId: string;
+  let integrate: AgentLaunchResult;
 
-  const integrate = await executeAgentRun(agent, options.integratePrompt, options.onEvent);
+  {
+    await using agent = await Agent.create(cloudAgentOptions(options, false));
+    integrate = await executeAgentRun(agent, options.integratePrompt, options.onEvent);
+    integrateAgentId = agent.agentId;
+  }
+
   await options.onValidateStart?.();
   const workBranch = integrate.branch;
+
+  // Integrate must not open a PR; validate resumes the same agent with autoCreatePR enabled.
+  await using validateAgent = await Agent.resume(
+    integrateAgentId,
+    cloudAgentOptions(options, true, { workOnCurrentBranch: true })
+  );
   const validate = await executeValidateWithPrRetries({
-    run: (prompt) => executeAgentRun(agent, prompt, options.onEvent),
+    run: (prompt) => executeAgentRun(validateAgent, prompt, options.onEvent),
     validatePrompt: options.validatePrompt,
     retryPrompt: (attempt) => options.retryPrompt(attempt, workBranch),
     repoUrl: options.target.repoUrl,
@@ -278,7 +290,7 @@ export async function launchValidateWithPrRetries(
   if (options.resumeAgentId) {
     await using agent = await Agent.resume(
       options.resumeAgentId,
-      cloudAgentOptions(options, false, cloudExtras)
+      cloudAgentOptions(options, true, cloudExtras)
     );
     return runWithRetries(async (prompt) => {
       const result = await executeAgentRun(agent, prompt, options.onEvent);
@@ -287,7 +299,7 @@ export async function launchValidateWithPrRetries(
     });
   }
 
-  await using agent = await Agent.create(cloudAgentOptions(options, false, cloudExtras));
+  await using agent = await Agent.create(cloudAgentOptions(options, true, cloudExtras));
   return runWithRetries(async (prompt) => {
     const result = await executeAgentRun(agent, prompt, options.onEvent);
     if (result.branch) activeBranch = result.branch;

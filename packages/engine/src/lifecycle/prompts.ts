@@ -118,7 +118,7 @@ You are continuing on the **same branch** where integration just finished.
 
 - **Do NOT create a new branch.**
 - Run verify gates on the current branch; fix failures in place if needed.
-- Open **one PR** from the current branch with \`gh pr create --base main\` (use the onboarding PR template for the body).
+- **Do NOT run \`gh pr create\`** — Cursor opens the PR via \`autoCreatePR\` when validation succeeds. Complete the PR description using the onboarding template below.
 `
     : workBranch
       ? `
@@ -128,7 +128,7 @@ Integration commits are on **\`${workBranch}\`**.
 
 - Check out \`${workBranch}\` — **do not create a new branch**.
 - Run verify gates on that branch; fix failures in place if needed.
-- Open **one PR** from \`${workBranch}\` → \`main\`.
+- **Do NOT run \`gh pr create\`** — Cursor opens the PR via \`autoCreatePR\`. Use the onboarding PR template for the description.
 `
       : "";
 
@@ -184,19 +184,16 @@ Integration and verification on **${standardId}** are already on branch \`${work
 
 ## Required action
 
-Open **one PR** from \`${workBranch}\` → \`main\` on ${spec.repo}:
+Verification is already complete on \`${workBranch}\`. **Do NOT run \`gh pr create\`.**
 
-\`\`\`bash
-gh pr create --base main --head ${workBranch} --title "Wath onboarding: ${standardId} for <app from integration.params.json>"
-\`\`\`
-
-Use the onboarding PR template for the body. Include verification evidence if \`.wath/verify-summary.json\` exists.
+Ensure Cursor opens **one PR** via \`autoCreatePR\` with title \`Wath onboarding: ${standardId} for <app from integration.params.json>\`.
+Complete the PR description per the onboarding template (include \`.wath/verify-summary.json\` evidence if present).
 
 ${prSubmissionInstructions(context.repoRoot, standard)}
 
 ## Response
 
-End with the PR URL (e.g. \`https://github.com/.../pull/N\`). If \`gh pr create\` fails, diagnose the error and retry until it succeeds.
+End with the PR URL (e.g. \`https://github.com/.../pull/N\`) once Cursor has opened the pull request.
 `;
 }
 
