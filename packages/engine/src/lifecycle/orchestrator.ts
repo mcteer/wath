@@ -53,6 +53,13 @@ import {
   parseBranchFromAgentText,
 } from "../agent/discover-branch.js";
 import { resolveEffectivePhase } from "./phase.js";
+import {
+  beginActiveRun,
+  completeActiveRun,
+  failActiveRun,
+  loadActiveRun,
+  recordActiveRunProgress,
+} from "./run-progress.js";
 
 function findExistingOpenPr(
   state: ApplicationState,
@@ -75,9 +82,25 @@ function findExistingOpenPr(
 
 async function notifyProgress(
   options: LifecycleOptions,
+  appId: string,
   update: LifecycleProgressUpdate
 ): Promise<void> {
+  if (options.trackProgress !== false) {
+    recordActiveRunProgress(appId, update);
+  }
   await options.onProgress?.(update);
+}
+
+
+function finishTrackedRun(
+  appId: string,
+  options: LifecycleOptions,
+  result: LifecycleResult
+): LifecycleResult {
+  if (options.trackProgress !== false) {
+    completeActiveRun(appId, result);
+  }
+  return result;
 }
 
 async function resolveIntegrateBranch(
@@ -308,21 +331,31 @@ export async function runLifecycle(
   }
 
   try {
+    if (options.trackProgress !== false) {
+      const active = loadActiveRun(appId, repoRoot);
+      if (!active || active.status !== "running") {
+        beginActiveRun(appId, repoRoot);
+      }
+    }
     const freshBeforeLaunch = loadApplicationState(repoRoot, appId) ?? state;
     const existingPr = findExistingOpenPr(freshBeforeLaunch, phase, standardId);
     if (existingPr) {
       if (standardId) {
-        await notifyProgress(options, prSubmittedProgress(standardId, existingPr));
+        await notifyProgress(options, appId, prSubmittedProgress(standardId, existingPr));
       }
-      return skippedLaunchResult(appId, freshBeforeLaunch, "pr_already_open", existingPr, {
-        resolvedConsumer: result.resolvedConsumer,
-      });
+      return finishTrackedRun(
+        appId,
+        options,
+        skippedLaunchResult(appId, freshBeforeLaunch, "pr_already_open", existingPr, {
+          resolvedConsumer: result.resolvedConsumer,
+        })
+      );
     }
 
     if (phase === "integrate" && standardId) {
-      await notifyProgress(options, integratingProgress(standardId));
+      await notifyProgress(options, appId, integratingProgress(standardId));
     } else if (phase === "validate" && standardId) {
-      await notifyProgress(options, validatingProgress(standardId));
+      await notifyProgress(options, appId, validatingProgress(standardId));
     }
 
     const apiKey = requireApiKey(config);
@@ -368,7 +401,7 @@ export async function runLifecycle(
         target: agentTarget,
         onEvent: onAgentEvent,
         onValidateStart: async () => {
-          await notifyProgress(options, validatingProgress(standardId!));
+          await notifyProgress(options, appId, validatingProgress(standardId!));
         },
         onPrRetry: (attempt) => {
           console.error(
@@ -389,14 +422,14 @@ export async function runLifecycle(
       if (chain.validate.prUrl) {
         recordAgentPr(appId, "integration", chain.validate.prUrl, standardId);
         result.state = loadApplicationState(repoRoot, appId)!;
-        await notifyProgress(options, prSubmittedProgress(standardId!, chain.validate.prUrl));
+        await notifyProgress(options, appId, prSubmittedProgress(standardId!, chain.validate.prUrl));
       } else {
         recordPrCreateFailure(state, standardId!, prRetries);
         persistState();
         result.state = state;
       }
 
-      return result;
+      return finishTrackedRun(appId, options, result);
     }
 
     let validateBranch =
@@ -462,7 +495,7 @@ export async function runLifecycle(
     } else if (phase === "validate" && agentResult.prUrl && standardId) {
       recordAgentPr(appId, "integration", agentResult.prUrl, standardId);
       result.state = loadApplicationState(repoRoot, appId)!;
-      await notifyProgress(options, prSubmittedProgress(standardId, agentResult.prUrl));
+      await notifyProgress(options, appId, prSubmittedProgress(standardId, agentResult.prUrl));
     } else if (phase === "validate" && standardId) {
       recordPrCreateFailure(state, standardId, prRetries);
       persistState();
@@ -483,7 +516,13 @@ export async function runLifecycle(
       result.state = state;
     }
 
-    return result;
+    return finishTrackedRun(appId, options, result);
+  } catch (err) {
+    if (options.trackProgress !== false) {
+      const message = err instanceof Error ? err.message : String(err);
+      failActiveRun(appId, message);
+    }
+    throw err;
   } finally {
     if (ownsLock) releaseOnboardLock(appId);
   }
@@ -492,18 +531,28 @@ export async function runLifecycle(
 export function getLifecycleStatus(
   consumerPathOrAppId: string,
   wathPathOption?: string
-): { appId: string; state: ApplicationState | null; spec?: ReturnType<typeof parseWathSpec> } {
+): {
+  appId: string;
+  state: ApplicationState | null;
+  spec?: ReturnType<typeof parseWathSpec>;
+  activeRun: ReturnType<typeof loadActiveRun>;
+} {
   const repoRoot = resolveRepoRoot();
 
   if (consumerPathOrAppId.includes("github.com")) {
     const appId = resolveApplicationId(consumerPathOrAppId);
-    return { appId, state: loadApplicationState(repoRoot, appId) };
+    return {
+      appId,
+      state: loadApplicationState(repoRoot, appId),
+      activeRun: loadActiveRun(appId, repoRoot),
+    };
   }
 
   if (/^[^/]+\/[^/]+$/.test(consumerPathOrAppId)) {
     return {
       appId: consumerPathOrAppId,
       state: loadApplicationState(repoRoot, consumerPathOrAppId),
+      activeRun: loadActiveRun(consumerPathOrAppId, repoRoot),
     };
   }
 
@@ -514,7 +563,12 @@ export function getLifecycleStatus(
   const wathPath = resolveWathPath(intent);
   const spec = parseWathSpec(wathPath);
   const appId = resolveApplicationId(spec.repo);
-  return { appId, state: loadApplicationState(repoRoot, appId), spec };
+  return {
+    appId,
+    state: loadApplicationState(repoRoot, appId),
+    spec,
+    activeRun: loadActiveRun(appId, repoRoot),
+  };
 }
 
 export function recordMerge(input: RecordMergeInput): ApplicationState {

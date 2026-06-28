@@ -70,6 +70,15 @@ export {
   resolveApplicationId,
   loadApplicationState,
 } from "./lifecycle/orchestrator.js";
+export {
+  beginActiveRun,
+  loadActiveRun,
+  recordActiveRunProgress,
+  completeActiveRun,
+  failActiveRun,
+  clearActiveRun,
+} from "./lifecycle/run-progress.js";
+export type { ActiveOnboardRun, ActiveRunStatus } from "./lifecycle/run-progress.js";
 export type {
   OnboardingPhase,
   ApplicationState,
