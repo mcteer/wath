@@ -41,7 +41,7 @@ describe("buildValidatePrompt", () => {
       sameAgentSession: true,
     });
     assert.match(prompt, /Same agent session/);
-    assert.match(prompt, /gh pr create --base main/);
+    assert.match(prompt, /autoCreatePR/);
     assert.match(prompt, /Do NOT create a new branch/);
   });
 });
@@ -58,6 +58,6 @@ describe("buildCreatePrRetryPrompt", () => {
     assert.match(prompt, /attempt 2/);
     assert.match(prompt, /cursor\/vault-dynamic-secrets-8a32/);
     assert.match(prompt, /Do NOT.*re-integrate/is);
-    assert.match(prompt, /gh pr create --base main/);
+    assert.match(prompt, /autoCreatePR/);
   });
 });
