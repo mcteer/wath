@@ -78,6 +78,8 @@ export interface LifecycleOptions {
   _resumeAgentId?: string;
   /** Optional progress callback (MCP notifications/progress during launch). */
   onProgress?: (update: LifecycleProgressUpdate) => void | Promise<void>;
+  /** Persist milestones to state/runs for wath.status polling (default: true when launch). */
+  trackProgress?: boolean;
 }
 
 export type LifecycleProgressStage = "integrating" | "validating" | "pr_submitted";

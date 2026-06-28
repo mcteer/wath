@@ -33,6 +33,7 @@ services:
       WATH_CONSUMER_SEARCH_PATHS: ${WATH_CONSUMER_SEARCH_PATHS:-consumers}
     volumes:
       - ../state/applications:/app/state/applications:Z
+      - ../state/runs:/app/state/runs:Z
       - ../examples:/app/examples:Z
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]

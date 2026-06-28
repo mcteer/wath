@@ -25,3 +25,5 @@ examples/consumer-demo/.github/
 # Runtime onboarding ledger (created on launch only — not committed)
 state/applications/**/*
 !state/applications/.gitkeep
+state/runs/**/*
+!state/runs/.gitkeep

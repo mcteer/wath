@@ -12,7 +12,7 @@ function lifecycleArgs(body: unknown): Record<string, unknown> {
 export async function handleLifecycleJson(req: Request, res: Response): Promise<void> {
   try {
     const result = await runWithRequestContext({ headers: req.headers }, () =>
-      executeWathTool("wath.onboard", lifecycleArgs(req.body))
+      executeWathTool("wath.onboard", { ...lifecycleArgs(req.body), async: false })
     );
     res.json(result);
   } catch (err) {
@@ -33,7 +33,7 @@ export async function handleLifecycleStream(req: Request, res: Response): Promis
 
   try {
     const result = await runWithRequestContext({ headers: req.headers }, () =>
-      executeWathTool("wath.onboard", args, {
+      executeWathTool("wath.onboard", { ...args, async: false }, {
         onProgress: async (update) => {
           sse.write("progress", update);
         },
