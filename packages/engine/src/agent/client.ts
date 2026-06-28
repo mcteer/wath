@@ -13,6 +13,8 @@ export interface AgentLaunchOptions {
   autoCreatePR?: boolean;
   /** Cloud: git ref to check out (integrate branch for validate). */
   startingRef?: string;
+  /** Cloud: resume integrate agent instead of spawning a new one. */
+  resumeAgentId?: string;
   onEvent?: (event: AgentStreamEvent) => void;
 }
 
@@ -49,8 +51,23 @@ export async function launchOnboardingAgent(
 ): Promise<AgentLaunchResult> {
   const mcpServers = buildMcpServers(options.config);
 
-  const agentOptions =
-    options.target.mode === "cloud"
+  const cloudExtras = {
+    autoCreatePR: options.autoCreatePR ?? true,
+    skipReviewerRequest: true,
+    ...(options.target.mode === "cloud" && options.resumeAgentId
+      ? { workOnCurrentBranch: true }
+      : {}),
+  };
+
+  const agentOptions = options.resumeAgentId
+    ? {
+        apiKey: options.apiKey,
+        model: { id: options.config.model },
+        agentId: options.resumeAgentId,
+        cloud: cloudExtras,
+        ...(Object.keys(mcpServers).length ? { mcpServers } : {}),
+      }
+    : options.target.mode === "cloud"
       ? {
           apiKey: options.apiKey,
           model: { id: options.config.model },
@@ -61,8 +78,7 @@ export async function launchOnboardingAgent(
                 ...(options.startingRef ? { startingRef: options.startingRef } : {}),
               },
             ],
-            autoCreatePR: options.autoCreatePR ?? true,
-            skipReviewerRequest: true,
+            ...cloudExtras,
           },
           ...(Object.keys(mcpServers).length ? { mcpServers } : {}),
         }
@@ -76,7 +92,9 @@ export async function launchOnboardingAgent(
           ...(Object.keys(mcpServers).length ? { mcpServers } : {}),
         };
 
-  await using agent = await Agent.create(agentOptions);
+  await using agent = options.resumeAgentId
+    ? await Agent.resume(options.resumeAgentId, agentOptions)
+    : await Agent.create(agentOptions);
 
   const run = await agent.send(options.prompt);
   options.onEvent?.({ type: "status", message: `run started: ${run.id}` });

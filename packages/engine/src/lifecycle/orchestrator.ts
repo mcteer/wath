@@ -42,6 +42,11 @@ import {
   validatingProgress,
 } from "./progress.js";
 import type { LifecycleProgressUpdate } from "./types.js";
+import type { AgentLaunchResult } from "../agent/client.js";
+import {
+  discoverIntegrateBranch,
+  parseBranchFromAgentText,
+} from "../agent/discover-branch.js";
 
 function resolveEffectivePhase(
   state: ApplicationState,
@@ -102,6 +107,21 @@ async function notifyProgress(
   update: LifecycleProgressUpdate
 ): Promise<void> {
   await options.onProgress?.(update);
+}
+
+async function resolveIntegrateBranch(
+  repoUrl: string,
+  agentResult: AgentLaunchResult
+): Promise<string | undefined> {
+  if (agentResult.branch) return agentResult.branch;
+  const fromText = parseBranchFromAgentText(agentResult.result);
+  if (fromText) return fromText;
+  try {
+    return await discoverIntegrateBranch(repoUrl);
+  } catch (err) {
+    console.error(`[wath] discoverIntegrateBranch failed: ${err}`);
+    return undefined;
+  }
 }
 
 function skippedLaunchResult(
@@ -306,6 +326,12 @@ export async function runLifecycle(
         ? (loadApplicationState(repoRoot, appId) ?? state).integrations[standardId]?.work_branch ??
           undefined
         : undefined;
+    const resumeAgentId =
+      options._resumeAgentId ??
+      (phase === "validate" && standardId
+        ? (loadApplicationState(repoRoot, appId) ?? state).integrations[standardId]
+            ?.integrate_agent_id ?? undefined
+        : undefined);
 
     const apiKey = requireApiKey(config);
     const agentResult = await launchOnboardingAgent({
@@ -313,7 +339,7 @@ export async function runLifecycle(
       prompt,
       config,
       autoCreatePR: phase === "validate" || phase === "enrich_manifest",
-      ...(validateBranch ? { startingRef: validateBranch } : {}),
+      ...(resumeAgentId ? { resumeAgentId } : validateBranch ? { startingRef: validateBranch } : {}),
       target: options.local
         ? { mode: "local", cwd: context.consumerRoot }
         : { mode: "cloud", repoUrl: resolveConsumerRepoUrl(context, config) },
@@ -333,9 +359,17 @@ export async function runLifecycle(
       result.state = loadApplicationState(repoRoot, appId)!;
       await notifyProgress(options, prSubmittedProgress(standardId, agentResult.prUrl));
     } else if (phase === "integrate") {
-      if (standardId && agentResult.branch && state.integrations[standardId]) {
-        state.integrations[standardId].work_branch = agentResult.branch;
-        appendHistory(state, "integrate_branch", agentResult.branch);
+      if (standardId && state.integrations[standardId]) {
+        state.integrations[standardId].integrate_agent_id = agentResult.agentId;
+        const branch = await resolveIntegrateBranch(
+          resolvedConsumer.repo,
+          agentResult
+        );
+        if (branch) {
+          state.integrations[standardId].work_branch = branch;
+          appendHistory(state, "integrate_branch", branch);
+        }
+        appendHistory(state, "integrate_agent", agentResult.agentId);
       }
       state.phase = "validate";
       appendHistory(state, "integrate_complete", standardId);
@@ -366,6 +400,7 @@ export async function runLifecycle(
       const validateResult = await runLifecycle(intent, {
         ...options,
         _chainValidate: true,
+        _resumeAgentId: result.agent?.agentId,
       });
       return {
         ...validateResult,

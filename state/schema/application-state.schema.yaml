@@ -56,6 +56,9 @@ properties:
         work_branch:
           type: ["string", "null"]
           description: Integration branch from integrate agent; validate opens PR from here
+        integrate_agent_id:
+          type: ["string", "null"]
+          description: Cloud agent id from integrate; validate resumes this agent
         last_verify:
           type: string
           enum: [passed, failed, unknown]
