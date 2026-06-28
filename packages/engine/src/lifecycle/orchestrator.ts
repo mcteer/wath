@@ -1,5 +1,9 @@
 import { loadConfig, requireApiKey } from "../config/env.js";
-import { launchOnboardingAgent, launchIntegrateValidateChain } from "../agent/client.js";
+import {
+  launchIntegrateValidateChain,
+  launchOnboardingAgent,
+  launchValidateWithPrRetries,
+} from "../agent/client.js";
 import { composeOnboardingContext } from "../onboarding/pipeline.js";
 import { materializeConsumerConfig, resolveConsumerRepoUrl } from "../onboarding/materialize.js";
 import { resolveConsumer } from "../onboarding/resolve-consumer.js";
@@ -16,6 +20,7 @@ import {
 import { recordAgentPr } from "./merge.js";
 import {
   buildIntegratePrompt,
+  buildCreatePrRetryPrompt,
   buildManifestEnrichmentPrompt,
   buildValidatePrompt,
 } from "./prompts.js";
@@ -47,41 +52,7 @@ import {
   discoverIntegrateBranch,
   parseBranchFromAgentText,
 } from "../agent/discover-branch.js";
-
-function resolveEffectivePhase(
-  state: ApplicationState,
-  spec: ReturnType<typeof parseWathSpec>,
-  forced?: OnboardingPhase
-): OnboardingPhase {
-  if (forced) return forced;
-
-  if (state.phase === "await_merge") return "await_merge";
-  if (state.phase === "compliant" && allIntegrationsMerged(spec, state.integrations)) {
-    return "compliant";
-  }
-
-  if (state.manifest.status === "pending_pr") return "await_merge";
-
-  if (state.manifest.status !== "accepted") {
-    if (!isManifestComplete(spec)) return "enrich_manifest";
-    state.manifest.status = "accepted";
-  }
-
-  if (allIntegrationsMerged(spec, state.integrations)) return "compliant";
-
-  const next = nextPendingStandardId(spec, state.integrations);
-  if (!next) {
-    const open = Object.values(state.integrations).some((i) => i.status === "pr_open");
-    return open ? "await_merge" : "integrate";
-  }
-
-  if (state.phase === "validate" && state.current_standard_id) {
-    const entry = state.integrations[state.current_standard_id];
-    if (entry?.status === "pr_open" && entry.pr_url) return "await_merge";
-    return "validate";
-  }
-  return "integrate";
-}
+import { resolveEffectivePhase } from "./phase.js";
 
 function findExistingOpenPr(
   state: ApplicationState,
@@ -153,6 +124,38 @@ function awaitMergePrompt(state: ApplicationState): string {
   }
   lines.push("", "After merge, run `wath record-merge` or MCP `wath.record_merge`.");
   return lines.join("\n");
+}
+
+function maxPrRetries(options: LifecycleOptions): number {
+  return options.maxRetries ?? 3;
+}
+
+function persistIntegrateOutcome(
+  state: ApplicationState,
+  standardId: string,
+  agentResult: AgentLaunchResult,
+  branch: string | undefined
+): void {
+  const entry = state.integrations[standardId];
+  if (!entry) return;
+  entry.integrate_agent_id = agentResult.agentId;
+  if (branch) {
+    entry.work_branch = branch;
+    appendHistory(state, "integrate_branch", branch);
+  }
+  appendHistory(state, "integrate_agent", agentResult.agentId);
+}
+
+function recordPrCreateFailure(
+  state: ApplicationState,
+  standardId: string,
+  attempt: number
+): void {
+  const entry = state.integrations[standardId];
+  if (!entry) return;
+  entry.retry_count = (entry.retry_count ?? 0) + 1;
+  state.phase = "validate";
+  appendHistory(state, "pr_create_failed", `${standardId} after ${attempt} attempt(s)`);
 }
 
 /** Multi-phase onboarding orchestrator. */
@@ -347,38 +350,47 @@ export async function runLifecycle(
       appendHistory(state, "phase_validate");
       persistState();
 
+      const prRetries = maxPrRetries(options);
       const chain = await launchIntegrateValidateChain({
         apiKey,
         integratePrompt: prompt,
         validatePrompt,
+        retryPrompt: (attempt, workBranch) =>
+          buildCreatePrRetryPrompt(
+            context,
+            standardId!,
+            workBranch ?? "cursor/<integration-branch>",
+            attempt
+          ),
+        maxPrRetries: prRetries,
         config,
         target: agentTarget,
         onEvent: onAgentEvent,
         onValidateStart: async () => {
           await notifyProgress(options, validatingProgress(standardId!));
         },
+        onPrRetry: (attempt) => {
+          console.error(
+            `[wath] PR not detected after validate (attempt ${attempt}/${prRetries - 1}), retrying…`
+          );
+        },
       });
 
       result.integrateAgent = chain.integrate;
       result.agent = chain.validate;
 
-      if (state.integrations[standardId!]) {
-        state.integrations[standardId!].integrate_agent_id = chain.integrate.agentId;
-        const branch = await resolveIntegrateBranch(resolvedConsumer.repo, chain.integrate);
-        if (branch) {
-          state.integrations[standardId!].work_branch = branch;
-          appendHistory(state, "integrate_branch", branch);
-        }
-        appendHistory(state, "integrate_agent", chain.integrate.agentId);
+      const branch = await resolveIntegrateBranch(resolvedConsumer.repo, chain.integrate);
+      if (standardId && state.integrations[standardId]) {
+        persistIntegrateOutcome(state, standardId, chain.integrate, branch);
       }
       appendHistory(state, "integrate_complete", standardId);
-      state.phase = "await_merge";
 
       if (chain.validate.prUrl) {
         recordAgentPr(appId, "integration", chain.validate.prUrl, standardId);
         result.state = loadApplicationState(repoRoot, appId)!;
         await notifyProgress(options, prSubmittedProgress(standardId!, chain.validate.prUrl));
       } else {
+        recordPrCreateFailure(state, standardId!, prRetries);
         persistState();
         result.state = state;
       }
@@ -401,19 +413,45 @@ export async function runLifecycle(
             ?.integrate_agent_id ?? undefined
         : undefined);
 
-    const agentResult = await launchOnboardingAgent({
-      apiKey,
-      prompt,
-      config,
-      autoCreatePR: phase === "validate" || phase === "enrich_manifest",
-      ...(resumeAgentId
-        ? { resumeAgentId }
-        : validateBranch
-          ? { startingRef: validateBranch }
-          : {}),
-      target: agentTarget,
-      onEvent: onAgentEvent,
-    });
+    const prRetries = maxPrRetries(options);
+    const agentResult =
+      phase === "validate" && agentTarget.mode === "cloud"
+        ? await launchValidateWithPrRetries({
+            apiKey,
+            validatePrompt: prompt,
+            retryPrompt: (attempt, workBranch) =>
+              buildCreatePrRetryPrompt(
+                context,
+                standardId!,
+                workBranch ?? validateBranch ?? "cursor/<integration-branch>",
+                attempt
+              ),
+            workBranch: validateBranch,
+            maxPrRetries: prRetries,
+            config,
+            resumeAgentId,
+            ...(validateBranch ? { startingRef: validateBranch } : {}),
+            target: agentTarget,
+            onEvent: onAgentEvent,
+            onPrRetry: (attempt) => {
+              console.error(
+                `[wath] PR not detected after validate (attempt ${attempt}/${prRetries - 1}), retrying…`
+              );
+            },
+          })
+        : await launchOnboardingAgent({
+            apiKey,
+            prompt,
+            config,
+            autoCreatePR: phase === "validate" || phase === "enrich_manifest",
+            ...(resumeAgentId
+              ? { resumeAgentId }
+              : validateBranch
+                ? { startingRef: validateBranch }
+                : {}),
+            target: agentTarget,
+            onEvent: onAgentEvent,
+          });
 
     result.agent = agentResult;
 
@@ -424,6 +462,10 @@ export async function runLifecycle(
       recordAgentPr(appId, "integration", agentResult.prUrl, standardId);
       result.state = loadApplicationState(repoRoot, appId)!;
       await notifyProgress(options, prSubmittedProgress(standardId, agentResult.prUrl));
+    } else if (phase === "validate" && standardId) {
+      recordPrCreateFailure(state, standardId, prRetries);
+      persistState();
+      result.state = state;
     } else if (phase === "integrate") {
       if (standardId && state.integrations[standardId]) {
         state.integrations[standardId].integrate_agent_id = agentResult.agentId;
