@@ -14,6 +14,7 @@ spec:
       labels:
         app: orders-api
     spec:
+      automountServiceAccountToken: false
       serviceAccountName: orders-api
       containers:
         - name: orders-api

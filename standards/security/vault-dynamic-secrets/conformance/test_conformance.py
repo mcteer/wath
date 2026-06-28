@@ -3,7 +3,7 @@ Conformance gate for the `vault-dynamic-secrets` standard.
 
 This is the deterministic half of the standard. It is COMPILED FROM THE SAME RULES the
 agent was steered with (SKILL.md §5), but it executes independently of the model: it reads
-the artifacts the agent produced and asserts VDS-001..008 with ordinary code. The model
+the artifacts the agent produced and asserts VDS-001..009 with ordinary code. The model
 cannot talk its way past it.
 
 Each test is named for the rule it enforces, so the mapping from prose rule -> executable
@@ -211,6 +211,18 @@ def test_VDS_007_no_plaintext_secret_objects():
             assert not re.search(r"(password|postgres|mysql|user:)", blob, re.I), \
                 "a Secret manifest carries DB credential material — must be issued dynamically, not committed"
 
+
+
+
+# ---------- VDS-009: disable default SA token mount ----------
+
+def test_VDS_009_automount_service_account_token_disabled():
+    docs = _load_manifests()
+    deployments = [d for d in docs if d.get("kind") == "Deployment"]
+    assert deployments, "integration must ship a Deployment manifest"
+    for d in deployments:
+        pod_spec = d.get("spec", {}).get("template", {}).get("spec", {})
+        assert pod_spec.get("automountServiceAccountToken") is False,             "Deployment pod spec must set automountServiceAccountToken: false (VDS-009)"
 
 # ---------- VDS-008: durable verification ----------
 

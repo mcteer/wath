@@ -29,7 +29,7 @@ if [ "${WATH_MANAGE_SANDBOX:-0}" = "1" ]; then
 fi
 
 # 1. Rule assertions (the standard, compiled to checks)
-echo "-- VDS-000..008 rule assertions"
+echo "-- VDS-000..009 rule assertions"
 WATH_ARTIFACT_ROOT="${ROOT}" python3 -m pytest -q "${HERE}/test_conformance.py"
 
 if [ "${SKIP_TOOLCHAIN:-0}" != "1" ]; then
