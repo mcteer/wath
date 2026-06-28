@@ -49,6 +49,7 @@ curl http://localhost:8080/health
 | GET | `/api/v1/status?target=examples/consumer-demo` | Lifecycle state |
 | POST | `/api/v1/record-merge` | Body: `{ "appId": "org/repo", "type": "manifest" }` |
 | POST | `/api/v1/poll-merges` | Poll GitHub for merged PRs and update state |
+| POST | `/api/v1/poll-drift` | Audit for drift and launch remediation onboard |
 | GET | `/api/v1/audit?apply=false` | Compliance report |
 | POST | `/mcp` | MCP Streamable HTTP (Cursor / HTTP MCP clients) |
 
@@ -59,6 +60,10 @@ If `WATH_TOKEN` is set, pass `Authorization: Bearer <token>` on all API and MCP 
 wath-core runs a background poller every 30s when `GITHUB_TOKEN` (or `GH_TOKEN`) is set. For each application in `await_merge`, it checks open PR URLs via the GitHub API and calls `record-merge` when a PR is merged. Set `WATH_MERGE_POLL_ENABLED=0` to disable.
 
 `GITHUB_TOKEN` is **required** for all GitHub API access from wath-core (wath.json fetch, branch/PR discovery, merge polling). Unauthenticated requests are capped at ~60/hour per IP — insufficient for fleet-wide onboarding or policy-driven bulk reruns.
+
+### Automatic drift remediation
+
+When `CURSOR_API_KEY` is set, wath-core runs a drift poller every 5 minutes (configurable via `WATH_DRIFT_POLL_INTERVAL_MS`). It runs `wath audit --apply`, flags apps whose recorded `standard_version` lags the registry, and launches async onboard runs to open remediation PRs. Skips apps already in `await_merge` or with an onboard run in flight. Set `WATH_DRIFT_POLL_ENABLED=0` to disable.
 
 ### Example: dry-run lifecycle
 

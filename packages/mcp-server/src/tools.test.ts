@@ -19,6 +19,7 @@ describe("listMcpToolDefinitions", () => {
       "wath_status",
       "wath_record_merge",
       "wath_poll_merges",
+      "wath_poll_drift",
       "wath_audit",
     ]);
   });

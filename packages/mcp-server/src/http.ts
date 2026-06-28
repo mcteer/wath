@@ -10,6 +10,7 @@ import { handleLifecycleJson, handleLifecycleStream } from "./lifecycle-routes.j
 import { runWithRequestContext } from "./request-context.js";
 import { executeWathTool } from "./tools.js";
 import { startMergePoller } from "./merge-poller.js";
+import { startDriftPoller } from "./drift-poller.js";
 
 const PORT = Number(process.env.PORT ?? process.env.WATH_PORT ?? 8080);
 const HOST = process.env.WATH_HOST ?? "0.0.0.0";
@@ -130,6 +131,19 @@ async function main(): Promise<void> {
     }
   });
 
+  app.post("/api/v1/poll-drift", async (req: Request, res: Response) => {
+    if (!authorize(req.headers.authorization)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const result = await executeWathTool("wath.poll_drift", {});
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
   app.get("/api/v1/audit", async (req: Request, res: Response) => {
     if (!authorize(req.headers.authorization)) {
       res.status(401).json({ error: "Unauthorized" });
@@ -152,6 +166,7 @@ async function main(): Promise<void> {
     console.error(`[wath] REST /api/v1/* (lifecycle/stream SSE)  MCP ${MCP_PATH}  health /health`);
     console.error(`[wath] WATH_ROOT=${process.env.WATH_ROOT ?? process.cwd()}`);
     startMergePoller();
+    startDriftPoller();
   });
 }
 
