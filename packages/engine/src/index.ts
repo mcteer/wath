@@ -41,6 +41,7 @@ export type { OnboardingContext, OnboardingOptions, OnboardingResult } from "./o
 export { buildOnboardingPrompt } from "./onboarding/prompt.js";
 export {
   artifactChecklistMarkdown,
+  artifactPrSectionMarkdown,
   DEFAULT_PR_TEMPLATE_REPO_PATH,
   goldenReferenceLines,
   prTemplateRepoPath,
