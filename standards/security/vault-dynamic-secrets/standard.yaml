@@ -33,7 +33,7 @@ onboarding:
     vault/auth-kubernetes-role.json: Kubernetes auth role binding — ties this app's service account and namespace to the policy (VDS-006)
     k8s/vso-dynamic-secret.yaml: Vault Secrets Operator CR — syncs short-lived DB credentials from Vault into a Kubernetes Secret
     k8s/deployment.yaml: App Deployment wired to the VSO-managed Secret — no static DATABASE_URL or password env values (VDS-001)
-    .github/workflows/vault-verify.yml: CI gate re-running the standard's conformance suite on every PR (VDS-008)
+    .github/workflows/vault-verify.yml: CI gate — sparse-checkouts Wath standards and re-runs conformance on every PR (VDS-008)
   golden_fixture: fixtures/tier4-orders-api
   golden_params: examples/integration.params.orders-api.json
   sandbox:
