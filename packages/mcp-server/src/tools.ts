@@ -4,6 +4,7 @@ import {
   beginActiveRun,
   getLifecycleStatus,
   loadActiveRun,
+  pollMergedPrs,
   recordMerge,
   resolveApplicationId,
   resolveConsumer,
@@ -95,6 +96,12 @@ export const WATH_TOOL_DEFINITIONS = [
     },
   },
   {
+    name: "wath.poll_merges",
+    description:
+      "Poll GitHub for merged onboarding PRs and update application state (same as wath-core background merge poller).",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
     name: "wath.audit",
     description:
       "Run compliance audit vs standards registry; optionally apply drift flags to state files.",
@@ -117,6 +124,8 @@ const MCP_TOOL_ALIASES: Record<string, WathToolName> = {
   "wath-status": "wath.status",
   wath_record_merge: "wath.record_merge",
   "wath-record-merge": "wath.record_merge",
+  wath_poll_merges: "wath.poll_merges",
+  "wath-poll-merges": "wath.poll_merges",
   wath_audit: "wath.audit",
   "wath-audit": "wath.audit",
 };
@@ -250,6 +259,8 @@ export async function executeWathTool(
         ...(args.prUrl ? { prUrl: String(args.prUrl) } : {}),
         ...(args.standardId ? { standardId: String(args.standardId) } : {}),
       });
+    case "wath.poll_merges":
+      return pollMergedPrs();
     case "wath.audit":
       return audit({ apply: Boolean(args.apply) });
     default:

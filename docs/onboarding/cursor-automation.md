@@ -54,7 +54,11 @@ Set `WATH_MCP_URL` when launching cloud agents from the engine so remote agents 
 
 > When `wath.json` changes on the default branch, call Wath MCP `wath.onboard` with this repo path. If the result phase is `await_merge`, stop and wait for the developer to merge the PR before re-running.
 
-## Automation: poll open PRs (merge detection)
+## Merge detection (automatic in wath-core)
+
+When **wath-core** is deployed with `GITHUB_TOKEN` in `deploy/.env`, a background poller checks `state/applications/*/*.yaml` every 30s and records merges automatically. No separate Cursor Automation or cron is required for merge detection.
+
+## Automation: poll open PRs (optional external fallback)
 
 **Trigger:** Scheduled (e.g. hourly) in the **Wath** repo.
 

@@ -146,7 +146,13 @@ wath record-merge --app org/repo --type manifest --pr https://github.com/org/rep
 wath record-merge --app org/repo --type integration --standard vault-dynamic-secrets --pr https://github.com/org/repo/pull/124
 ```
 
-Or poll from the Wath repo: `./scripts/poll-merge-prs.sh`
+When **wath-core** is running with `GITHUB_TOKEN` set, a background merge poller records merges automatically (every 30s). You can also poll on demand:
+
+```bash
+wath poll-merges
+# or: curl -X POST http://127.0.0.1:8080/api/v1/poll-merges -H "Authorization: Bearer $WATH_TOKEN"
+# or: ./scripts/poll-merge-prs.sh  (legacy gh-based cron)
+```
 
 ### 5. Check status and re-onboard
 
@@ -197,7 +203,7 @@ npm run demo:run
 Run the orchestrator as a local HTTP service — REST at `/api/v1/*`, MCP at `/mcp`:
 
 ```bash
-cp deploy/.env.example deploy/.env   # set CURSOR_API_KEY for live launches
+cp deploy/.env.example deploy/.env   # set CURSOR_API_KEY and GITHUB_TOKEN
 podman compose -f deploy/podman-compose.yml up --build -d
 curl http://127.0.0.1:8080/healthz
 ```
@@ -213,6 +219,7 @@ Full runbook: [Deploy with Podman](./docs/onboarding/deploy-podman.md). Demo scr
 | `wath onboard <path>` | Legacy single-shot onboarding |
 | `wath status <path\|url\|org/repo>` | Lifecycle state |
 | `wath record-merge --app org/repo --type …` | Mark a PR merged; advance phase |
+| `wath poll-merges` | Poll GitHub for merged PRs and update state |
 | `wath audit [--apply]` | Drift / compliance report |
 | `wath verify <standard-id> <path>` | Run conformance gate |
 

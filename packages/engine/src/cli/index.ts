@@ -9,6 +9,7 @@ import {
   recordMerge,
   runLifecycle,
 } from "../lifecycle/orchestrator.js";
+import { pollMergedPrs } from "../lifecycle/poll-merges.js";
 import type { OnboardingPhase } from "../lifecycle/types.js";
 
 const [, , command, ...argv] = process.argv;
@@ -70,6 +71,7 @@ Usage:
   wath lifecycle <consumer-path> [opts]  Multi-phase lifecycle (manifest → integrate → validate)
   wath status <path|repo-url|org/repo>   Lifecycle state for an application
   wath record-merge [opts]               Record a merged PR and advance phase
+  wath poll-merges [--json]              Poll GitHub for merged onboarding PRs
   wath audit [--apply] [--json]          Compliance audit vs standards registry
   wath verify <standard-id> <artifact-root>  Run conformance gate
 
@@ -93,6 +95,7 @@ record-merge options:
 Environment:
   CURSOR_API_KEY              Cursor API key (required for --launch)
   WATH_ROOT                   Path to Wath repo root
+  GITHUB_TOKEN / GH_TOKEN     GitHub API token (required for GitHub fetches and merge poll)
   WATH_CONSUMER_REPO_URL      GitHub URL for cloud onboarding
   WATH_MODEL                  Model id (default: composer-2.5)
 `);
@@ -200,6 +203,11 @@ async function main(): Promise<void> {
       });
       console.log(JSON.stringify(state, null, 2));
       break;
+    }
+    case "poll-merges": {
+      const result = await pollMergedPrs();
+      console.log(JSON.stringify(result, null, 2));
+      process.exit(result.errors.length > 0 ? 1 : 0);
     }
     case "audit": {
       const { flags } = parseArgs(argv);

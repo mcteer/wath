@@ -30,6 +30,10 @@ services:
       WATH_CONSUMER_REPO_URL: ${WATH_CONSUMER_REPO_URL:-}
       WATH_TOKEN: ${WATH_TOKEN:-dev-local-token}
       WATH_MODEL: ${WATH_MODEL:-composer-2.5}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GH_TOKEN: ${GH_TOKEN:-}
+      WATH_MERGE_POLL_INTERVAL_MS: ${WATH_MERGE_POLL_INTERVAL_MS:-30000}
+      WATH_MERGE_POLL_ENABLED: ${WATH_MERGE_POLL_ENABLED:-1}
       WATH_CONSUMER_SEARCH_PATHS: ${WATH_CONSUMER_SEARCH_PATHS:-consumers}
     volumes:
       - ../state/applications:/app/state/applications:Z
