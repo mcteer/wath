@@ -8,7 +8,7 @@ standards:
     version: 7
     rule_prefix: VDS
     version_notes: >
-      Registry v9 alignment only — standard.yaml content is unchanged (v5).
+      Registry v7 alignment only — standard.yaml content is unchanged (v5).
       Start from main, run conformance first, and apply a minimal diff.
       Do not regenerate vault/policy.hcl or other artifacts already compliant on main
       unless a conformance gate fails.
