@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 import { stringify as stringifyYaml } from "yaml";
 
-import { integratingProgress } from "./progress.js";
+import { driftResolvedProgress, integratingProgress } from "./progress.js";
 import {
   beginActiveRun,
   clearActiveRun,
@@ -129,16 +129,42 @@ describe("run progress persistence", () => {
   it("summarizes lifecycle results", () => {
     const summary = summarizeLifecycleResult({
       appId,
-      phase: "await_merge",
-      state: {} as never,
+      phase: "integrate",
+      state: { phase: "compliant" } as never,
       prompt: "ignored",
       integrateAgent: { agentId: "i", runId: "r1", status: "ok", branch: "cursor/b" },
       agent: { agentId: "v", runId: "r2", status: "ok", prUrl: "https://github.com/o/r/pull/3" },
     });
+    assert.equal(summary.phase, "compliant");
     assert.equal(summary.integrateAgentId, "i");
     assert.equal(summary.validateAgentId, "v");
     assert.equal(summary.branch, "cursor/b");
     assert.equal(summary.prUrl, "https://github.com/o/r/pull/3");
+  });
+
+  it("completes drift-no-PR runs with drift_resolved stage and ledger phase", () => {
+    beginActiveRun(appId, wathRoot);
+    recordActiveRunProgress(appId, driftResolvedProgress("vault-dynamic-secrets", 8), wathRoot);
+
+    completeActiveRun(
+      appId,
+      {
+        appId,
+        phase: "integrate",
+        state: { phase: "compliant" } as never,
+        prompt: "ignored",
+        agent: { agentId: "v", runId: "r", status: "ok", branch: "main" },
+      },
+      wathRoot
+    );
+
+    const done = loadActiveRun(appId, wathRoot);
+    assert.equal(done?.status, "done");
+    assert.equal(done?.stage, "drift_resolved");
+    assert.match(done?.message ?? "", /no PR required/);
+    assert.equal(done?.prUrl, undefined);
+    assert.equal(done?.result?.phase, "compliant");
+    clearActiveRun(appId, wathRoot);
   });
 
   it("records failures", () => {

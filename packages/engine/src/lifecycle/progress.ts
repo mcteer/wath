@@ -50,7 +50,7 @@ export function driftResolvedProgress(
   toVersion: number
 ): LifecycleProgressUpdate {
   return {
-    stage: "pr_submitted",
+    stage: "drift_resolved",
     progress: ONBOARD_PROGRESS_TOTAL,
     total: ONBOARD_PROGRESS_TOTAL,
     standardId,

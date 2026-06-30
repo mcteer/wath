@@ -82,7 +82,11 @@ export interface LifecycleOptions {
   trackProgress?: boolean;
 }
 
-export type LifecycleProgressStage = "integrating" | "validating" | "pr_submitted";
+export type LifecycleProgressStage =
+  | "integrating"
+  | "validating"
+  | "pr_submitted"
+  | "drift_resolved";
 
 export interface LifecycleProgressUpdate {
   stage: LifecycleProgressStage;
