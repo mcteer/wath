@@ -92,8 +92,26 @@ function findExistingOpenPr(
 async function notifyProgress(
   options: LifecycleOptions,
   appId: string,
-  update: LifecycleProgressUpdate
+  update: LifecycleProgressUpdate,
+  state?: ApplicationState,
+  persistState?: () => void
 ): Promise<void> {
+  if (state && update.stage === "validating") {
+    if (state.phase !== "validate") {
+      state.phase = "validate";
+      appendHistory(state, "phase_validate");
+      persistState?.();
+    }
+    if (update.standardId && update.branch && update.branch !== "main" && update.branch !== "master") {
+      const entry = state.integrations[update.standardId];
+      if (entry && entry.work_branch !== update.branch) {
+        entry.work_branch = update.branch;
+        appendHistory(state, "integrate_branch", update.branch);
+        persistState?.();
+      }
+    }
+  }
+
   if (options.trackProgress !== false) {
     recordActiveRunProgress(appId, update);
   }
@@ -429,7 +447,7 @@ export async function runLifecycle(
     const existingPr = findExistingOpenPr(freshBeforeLaunch, phase, standardId);
     if (existingPr) {
       if (standardId) {
-        await notifyProgress(options, appId, prSubmittedProgress(standardId, existingPr));
+        await notifyProgress(options, appId, prSubmittedProgress(standardId, existingPr), state, persistState);
       }
       return finishTrackedRun(
         appId,
@@ -472,9 +490,15 @@ export async function runLifecycle(
 
     if (phase === "integrate" && standardId && !orphanIntegrateBranch) {
       if (driftRemediation) {
-        await notifyProgress(options, appId, validatingProgress(standardId, { branch: "main" }));
+        await notifyProgress(
+          options,
+          appId,
+          validatingProgress(standardId, { branch: "main" }),
+          state,
+          persistState
+        );
       } else {
-        await notifyProgress(options, appId, integratingProgress(standardId));
+        await notifyProgress(options, appId, integratingProgress(standardId), state, persistState);
       }
     } else if (phase === "validate" && standardId) {
       const branch =
@@ -483,7 +507,9 @@ export async function runLifecycle(
       await notifyProgress(
         options,
         appId,
-        validatingProgress(standardId, branch ? { branch } : undefined)
+        validatingProgress(standardId, branch ? { branch } : undefined),
+        state,
+        persistState
       );
     }
 
@@ -509,14 +535,14 @@ export async function runLifecycle(
       await notifyProgress(
         options,
         appId,
-        validatingProgress(standardId, { branch: orphanIntegrateBranch })
+        validatingProgress(standardId, { branch: orphanIntegrateBranch }),
+        state,
+        persistState
       );
       const prRetries = maxPrRetries(options);
       const validatePrompt = buildValidatePrompt(context, standardId, orphanIntegrateBranch, {
         ...(driftRemediation ? { driftRemediation } : {}),
       });
-      appendHistory(state, "phase_validate");
-      persistState();
 
       const agentResult = await launchValidateWithPrRetries({
         apiKey,
@@ -564,8 +590,6 @@ export async function runLifecycle(
         driftRemediation,
         verifyOnMain: true,
       });
-      appendHistory(state, "phase_validate");
-      persistState();
 
       const prRetries = maxPrRetries(options);
       const agentResult = await launchOnboardingAgent({
@@ -599,8 +623,6 @@ export async function runLifecycle(
         sameAgentSession: true,
         ...(driftRemediation ? { driftRemediation } : {}),
       });
-      appendHistory(state, "phase_validate");
-      persistState();
 
       const prRetries = maxPrRetries(options);
       const chain = await launchIntegrateValidateChain({
@@ -625,7 +647,9 @@ export async function runLifecycle(
           await notifyProgress(
             options,
             appId,
-            validatingProgress(standardId!, branch ? { branch } : undefined)
+            validatingProgress(standardId!, branch ? { branch } : undefined),
+            state,
+            persistState
           );
         },
         onPrRetry: (attempt) => {
