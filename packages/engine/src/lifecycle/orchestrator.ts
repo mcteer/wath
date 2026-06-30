@@ -21,7 +21,6 @@ import {
 import { recordAgentPr } from "./merge.js";
 import { finalizeIntegrationValidate } from "./finalize-validate.js";
 import {
-  buildDriftRemediatePrompt,
   buildIntegratePrompt,
   buildCreatePrRetryPrompt,
   buildManifestEnrichmentPrompt,
@@ -316,7 +315,10 @@ export async function runLifecycle(
       break;
     case "integrate":
       prompt = driftRemediation
-        ? buildDriftRemediatePrompt(composeOnboardingContext(intent), driftRemediation)
+        ? buildValidatePrompt(composeOnboardingContext(intent), standardId!, "main", {
+            driftRemediation,
+            verifyOnMain: true,
+          })
         : buildIntegratePrompt(composeOnboardingContext(intent), standardId!);
       break;
     case "validate":
@@ -468,7 +470,11 @@ export async function runLifecycle(
     }
 
     if (phase === "integrate" && standardId && !orphanIntegrateBranch) {
-      await notifyProgress(options, appId, integratingProgress(standardId));
+      if (driftRemediation) {
+        await notifyProgress(options, appId, validatingProgress(standardId, { branch: "main" }));
+      } else {
+        await notifyProgress(options, appId, integratingProgress(standardId));
+      }
     } else if (phase === "validate" && standardId) {
       const branch =
         (loadApplicationState(repoRoot, appId) ?? state).integrations[standardId]?.work_branch ??
@@ -487,7 +493,16 @@ export async function runLifecycle(
       !options._chainValidate &&
       agentTarget.mode === "cloud" &&
       Boolean(standardId) &&
-      !orphanIntegrateBranch;
+      !orphanIntegrateBranch &&
+      !driftRemediation;
+
+    const useDriftVerifyOnMain =
+      driftRemediation &&
+      phase === "integrate" &&
+      options.launch &&
+      !orphanIntegrateBranch &&
+      agentTarget.mode === "cloud" &&
+      Boolean(standardId);
 
     if (orphanIntegrateBranch && phase === "integrate" && standardId && options.launch) {
       await notifyProgress(
@@ -534,6 +549,42 @@ export async function runLifecycle(
         driftRemediation,
         agentResult,
         workBranch: orphanIntegrateBranch,
+        state,
+        prRetries,
+        options,
+      });
+      result.state = finalized.state;
+      return finishTrackedRun(appId, options, result);
+    }
+
+    if (useDriftVerifyOnMain) {
+      console.error("[wath] drift verify on main — skipping integrate agent");
+      const validatePrompt = buildValidatePrompt(context, standardId!, "main", {
+        driftRemediation,
+        verifyOnMain: true,
+      });
+      appendHistory(state, "phase_validate");
+      persistState();
+
+      const prRetries = maxPrRetries(options);
+      const agentResult = await launchOnboardingAgent({
+        apiKey,
+        prompt: validatePrompt,
+        config,
+        autoCreatePR: false,
+        startingRef: "main",
+        target: agentTarget,
+        onEvent: onAgentEvent,
+      });
+
+      result.agent = agentResult;
+      const finalized = await applyValidateFinalize({
+        appId,
+        standardId: standardId!,
+        repoUrl: resolvedConsumer.repo,
+        driftRemediation,
+        agentResult,
+        workBranch: "main",
         state,
         prRetries,
         options,

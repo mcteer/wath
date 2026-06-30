@@ -79,6 +79,22 @@ describe("buildValidatePrompt", () => {
     assert.match(prompt, /Do \*\*not\*\* copy the full first-onboarding artifact checklist/);
     assert.doesNotMatch(prompt, /Artifacts in this PR.*integration\.params\.json/s);
   });
+
+  it("instructs verify-on-main without branch creation when verifyOnMain is set", () => {
+    const prompt = buildValidatePrompt(context, "vault-dynamic-secrets", "main", {
+      driftRemediation: {
+        standardId: "vault-dynamic-secrets",
+        fromVersion: 7,
+        toVersion: 8,
+        contentVersion: 5,
+      },
+      verifyOnMain: true,
+    });
+    assert.match(prompt, /Drift verify on main/);
+    assert.match(prompt, /do NOT create a `cursor\/\*` branch/i);
+    assert.match(prompt, /DRIFT_NO_PR_REQUIRED/);
+    assert.match(prompt, /Open a PR \*\*only\*\* if integration artifacts must change/);
+  });
 });
 
 describe("buildCreatePrRetryPrompt", () => {
