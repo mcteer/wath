@@ -32,12 +32,10 @@ export function runComplianceAudit(wathRoot?: string): AuditReport {
           currentVersion,
         });
         compliance[standardId] = "drift";
-      } else if (entry.status === "failed" || entry.status === "pr_open") {
-        compliance[standardId] = "non_compliant";
       } else if (entry.status === "merged") {
         compliance[standardId] = "in_compliance";
       } else {
-        compliance[standardId] = entry.compliance;
+        compliance[standardId] = "non_compliant";
       }
     }
 
