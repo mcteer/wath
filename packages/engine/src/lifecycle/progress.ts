@@ -44,3 +44,16 @@ export function prSubmittedProgress(
     message: `PR submitted: ${prUrl}`,
   };
 }
+
+export function driftResolvedProgress(
+  standardId: string,
+  toVersion: number
+): LifecycleProgressUpdate {
+  return {
+    stage: "pr_submitted",
+    progress: ONBOARD_PROGRESS_TOTAL,
+    total: ONBOARD_PROGRESS_TOTAL,
+    standardId,
+    message: `Drift resolved — ${standardId} at registry v${toVersion} (no PR required)`,
+  };
+}

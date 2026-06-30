@@ -17,6 +17,8 @@ export interface StandardOnboarding {
   consumer_rule?: string;
   /** Repo-relative PR template path under templates/consumer/ */
   pr_template?: string;
+  /** Repo-relative drift remediation PR template (defaults to wath-drift-remediation.md). */
+  drift_pr_template?: string;
 }
 
 export interface StandardMetadata {
