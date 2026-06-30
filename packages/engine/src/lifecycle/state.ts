@@ -69,7 +69,7 @@ function defaultIntegrationState(wathRoot: string, standardId: string): Integrat
     work_branch: null,
     integrate_agent_id: null,
     last_verify: "unknown",
-    compliance: "in_compliance",
+    compliance: "non_compliant",
     retry_count: 0,
   };
 }
