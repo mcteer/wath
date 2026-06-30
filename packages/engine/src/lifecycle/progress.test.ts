@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   ONBOARD_PROGRESS_TOTAL,
+  driftResolvedProgress,
   integratingProgress,
   prSubmittedProgress,
   validatingProgress,
@@ -23,5 +24,12 @@ describe("onboard progress messages", () => {
     assert.match(integrate.message, /Integrating vault-dynamic-secrets/);
     assert.match(validate.message, /Validating vault-dynamic-secrets/);
     assert.match(pr.message, /PR submitted: https:\/\/github.com\/org\/app\/pull\/1/);
+  });
+
+  it("uses drift_resolved stage when no PR is required", () => {
+    const resolved = driftResolvedProgress("vault-dynamic-secrets", 8);
+    assert.equal(resolved.stage, "drift_resolved");
+    assert.equal(resolved.progress, ONBOARD_PROGRESS_TOTAL);
+    assert.match(resolved.message, /no PR required/);
   });
 });

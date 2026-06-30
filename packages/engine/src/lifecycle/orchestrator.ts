@@ -107,6 +107,7 @@ function finishTrackedRun(
   result: LifecycleResult
 ): LifecycleResult {
   if (options.trackProgress !== false) {
+    result.phase = result.state.phase;
     completeActiveRun(appId, result);
   }
   return result;

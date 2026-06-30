@@ -87,7 +87,7 @@ function isFullLifecycleResult(value: unknown): value is LifecycleResult {
 
 export function summarizeLifecycleResult(result: LifecycleResult): ActiveRunResultSummary {
   return {
-    phase: result.phase,
+    phase: result.state?.phase ?? result.phase,
     prUrl: result.agent?.prUrl ?? result.integrateAgent?.prUrl ?? result.existingPrUrl,
     branch: result.agent?.branch ?? result.integrateAgent?.branch,
     integrateAgentId: result.integrateAgent?.agentId,
@@ -230,11 +230,16 @@ export function completeActiveRun(
   const now = new Date().toISOString();
   const summary = summarizeLifecycleResult(result);
   const prUrl = summary.prUrl;
+  const driftResolved = existing?.stage === "drift_resolved";
   const run: ActiveOnboardRun = {
     appId,
     status: "done",
-    stage: prUrl ? "pr_submitted" : existing?.stage,
-    message: prUrl ? `PR submitted: ${prUrl}` : "Onboarding complete",
+    stage: prUrl ? "pr_submitted" : driftResolved ? "drift_resolved" : existing?.stage,
+    message: prUrl
+      ? `PR submitted: ${prUrl}`
+      : driftResolved && existing?.message
+        ? existing.message
+        : "Onboarding complete",
     progress: existing?.total ?? 3,
     total: existing?.total ?? 3,
     startedAt: existing?.startedAt ?? now,
