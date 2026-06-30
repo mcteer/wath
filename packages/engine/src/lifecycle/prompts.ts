@@ -183,14 +183,35 @@ export function buildValidatePrompt(
   context: OnboardingContext,
   standardId: string,
   workBranch?: string,
-  options: { sameAgentSession?: boolean; driftRemediation?: DriftRemediationInfo } = {}
+  options: {
+    sameAgentSession?: boolean;
+    driftRemediation?: DriftRemediationInfo;
+    verifyOnMain?: boolean;
+  } = {}
 ): string {
   const spec = context.wathSpec;
   const standard = resolveStandard(context.repoRoot, standardId);
   const verifyScript = standardVerifyRepoPath(standard);
 
-  const branchBlock = options.sameAgentSession
-    ? `
+  const verifyOnMainBlock =
+    options.verifyOnMain && options.driftRemediation
+      ? `
+## Drift verify on main (critical)
+
+Registry **v${options.driftRemediation.fromVersion} → v${options.driftRemediation.toVersion}** — verify existing artifacts on \`main\` first.
+
+- Check out and stay on **\`main\`** — **do NOT create a \`cursor/*\` branch** unless you must commit integration artifact fixes.
+- Run verify gates on artifacts already on \`main\`; change only what a failing gate or the version changelog requires.
+- Do **not** commit \`.wath/*\` — paste verify evidence only if you open a PR.
+- If verify passes and \`git diff origin/main\` has **no integration artifact changes**, end with \`DRIFT_NO_PR_REQUIRED\` — **no branch, no PR**.
+- If fixes are required, create **one** integration branch, apply minimal fixes, then open a PR with \`gh pr create\` using the drift template below.
+`
+      : "";
+
+  const branchBlock = options.verifyOnMain
+    ? ""
+    : options.sameAgentSession
+      ? `
 ## Same agent session (critical)
 
 You are continuing on the **same branch** where integration just finished.
@@ -199,8 +220,8 @@ You are continuing on the **same branch** where integration just finished.
 - Run verify gates on the current branch; fix failures in place if needed.
 - **Do NOT run \`gh pr create\`** — Cursor opens the PR via \`autoCreatePR\` when validation succeeds. Complete the PR description using the onboarding template below.
 `
-    : workBranch
-      ? `
+      : workBranch
+        ? `
 ## Integration branch (required)
 
 Integration commits are on **\`${workBranch}\`**.
@@ -209,10 +230,12 @@ Integration commits are on **\`${workBranch}\`**.
 - Run verify gates on that branch; fix failures in place if needed.
 - **Do NOT run \`gh pr create\`** — Cursor opens the PR via \`autoCreatePR\`. Use the onboarding PR template for the description.
 `
-      : "";
+        : "";
 
-  const driftBlock = options.driftRemediation
-    ? `
+  const driftBlock =
+    verifyOnMainBlock ||
+    (options.driftRemediation
+      ? `
 ## Drift remediation (critical)
 
 Registry **v${options.driftRemediation.fromVersion} → v${options.driftRemediation.toVersion}** — minimal diff only.
@@ -222,15 +245,19 @@ Registry **v${options.driftRemediation.fromVersion} → v${options.driftRemediat
 - Do **not** commit \`.wath/*\` — paste verify evidence in the PR body.
 - If verify passes and \`git diff origin/main\` has **no integration artifact changes**, do **not** open a PR; end with \`DRIFT_NO_PR_REQUIRED\`.
 `
-    : "";
+      : "");
 
   const prInstructions = options.driftRemediation
     ? driftPrSubmissionInstructions(context.repoRoot, standard, options.driftRemediation)
     : prSubmissionInstructions(context.repoRoot, standard);
 
+  const goalLine = options.verifyOnMain
+    ? `Verify registry drift for **${standardId}** on \`main\`. Open a PR **only** if integration artifacts must change.`
+    : `Verify the integration for **${standardId}** and open **one integration PR** on success.`;
+
   return `# Wath validation — ${standardId}
 
-Verify the integration for **${standardId}** and open **one integration PR** on success.
+${goalLine}
 ${branchBlock}${driftBlock}
 ## Target repo
 ${spec.repo}

@@ -3,6 +3,7 @@ import {
   listBranchDiffFiles,
   meaningfulIntegrationDiffPaths,
 } from "../github/compare-branch.js";
+import { deleteRemoteBranch } from "../github/delete-branch.js";
 import { resolveGitHubToken } from "../github/token.js";
 import type { DriftRemediationInfo } from "./drift-context.js";
 import { recordAgentPr, recordDriftResolvedWithoutPr } from "./merge.js";
@@ -29,6 +30,22 @@ async function branchHasMeaningfulDriftDiff(
       err instanceof Error ? err.message : String(err)
     );
     return null;
+  }
+}
+
+async function cleanupOrphanDriftBranch(
+  repoUrl: string,
+  branch: string | undefined
+): Promise<void> {
+  if (!branch || branch === "main" || branch === "master") return;
+  try {
+    await deleteRemoteBranch(repoUrl, branch, resolveGitHubToken());
+    console.error(`[wath] deleted orphan drift branch ${branch}`);
+  } catch (err) {
+    console.error(
+      `[wath] failed to delete orphan drift branch ${branch}:`,
+      err instanceof Error ? err.message : String(err)
+    );
   }
 }
 
@@ -64,6 +81,7 @@ export async function finalizeIntegrationValidate(input: {
           `[wath] drift resolved without PR for ${appId} — ledger → v${driftRemediation.toVersion}`
         );
       }
+      await cleanupOrphanDriftBranch(repoUrl, branch);
       return {
         kind: "drift_no_pr",
         state: recordDriftResolvedWithoutPr(appId, standardId, driftRemediation.toVersion),
