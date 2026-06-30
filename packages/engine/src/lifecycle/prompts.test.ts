@@ -73,9 +73,11 @@ describe("buildValidatePrompt", () => {
         contentVersion: 5,
       },
     });
-    assert.match(prompt, /Drift remediation PR/);
-    assert.match(prompt, /Wath drift remediation/);
-    assert.match(prompt, /Minimal diff only/);
+    assert.match(prompt, /Drift remediation/);
+    assert.match(prompt, /wath-drift-remediation\.md/);
+    assert.match(prompt, /DRIFT_NO_PR_REQUIRED/);
+    assert.match(prompt, /Do \*\*not\*\* copy the full first-onboarding artifact checklist/);
+    assert.doesNotMatch(prompt, /Artifacts in this PR.*integration\.params\.json/s);
   });
 });
 

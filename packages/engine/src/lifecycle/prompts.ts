@@ -6,7 +6,7 @@ import {
   standardSkillRepoPath,
   standardVerifyRepoPath,
 } from "../onboarding/artifacts.js";
-import { prSubmissionInstructions } from "../onboarding/pr-template.js";
+import { prSubmissionInstructions, driftPrSubmissionInstructions } from "../onboarding/pr-template.js";
 import { resolveStandard } from "../standards/registry.js";
 import type { DriftRemediationInfo } from "./drift-context.js";
 
@@ -213,15 +213,20 @@ Integration commits are on **\`${workBranch}\`**.
 
   const driftBlock = options.driftRemediation
     ? `
-## Drift remediation PR (critical)
+## Drift remediation (critical)
 
-This PR remediates registry **v${options.driftRemediation.fromVersion} → v${options.driftRemediation.toVersion}** drift.
+Registry **v${options.driftRemediation.fromVersion} → v${options.driftRemediation.toVersion}** — minimal diff only.
 
-- PR title: \`Wath drift remediation: ${standardId} v${options.driftRemediation.toVersion} for <app>\`
-- **Minimal diff only** — explain each changed file and why the v${options.driftRemediation.fromVersion} → v${options.driftRemediation.toVersion} delta or a conformance gate required it.
-- Do **not** claim policy or artifact changes that are not in the diff.
+- Run verify gates on \`main\` or the integration branch.
+- Change only what the version changelog or a failing gate requires.
+- Do **not** commit \`.wath/*\` — paste verify evidence in the PR body.
+- If verify passes and \`git diff origin/main\` has **no integration artifact changes**, do **not** open a PR; end with \`DRIFT_NO_PR_REQUIRED\`.
 `
     : "";
+
+  const prInstructions = options.driftRemediation
+    ? driftPrSubmissionInstructions(context.repoRoot, standard, options.driftRemediation)
+    : prSubmissionInstructions(context.repoRoot, standard);
 
   return `# Wath validation — ${standardId}
 
@@ -241,11 +246,11 @@ WATH_ARTIFACT_ROOT=${context.consumerRoot} WATH_BEHAVIORAL=1 WATH_MANAGE_SANDBOX
 \`\`\`
 
 ## On pass
-1. Attach \`.wath/verify-summary.json\` evidence in the PR body.
-2. Open one PR${workBranch ? ` from \`${workBranch}\`` : ""} to \`${spec.repo}\` with all integration artifacts + app diff.
-3. Use the onboarding PR template.
+1. Paste \`.wath/verify-summary.json\` evidence in the PR body (do not commit \`.wath/\` on drift runs).
+2. Open one PR${workBranch ? ` from \`${workBranch}\`` : ""} to \`${spec.repo}\` **only when integration files changed vs \`main\`**.
+3. Use the PR template below.
 
-${prSubmissionInstructions(context.repoRoot, standard)}
+${prInstructions}
 
 ## On failure
 - Fix artifacts and re-verify (max reasonable iterations).
@@ -262,10 +267,19 @@ export function buildCreatePrRetryPrompt(
   context: OnboardingContext,
   standardId: string,
   workBranch: string,
-  attempt: number
+  attempt: number,
+  options: { driftRemediation?: DriftRemediationInfo } = {}
 ): string {
   const spec = context.wathSpec;
   const standard = resolveStandard(context.repoRoot, standardId);
+
+  const prInstructions = options.driftRemediation
+    ? driftPrSubmissionInstructions(context.repoRoot, standard, options.driftRemediation)
+    : prSubmissionInstructions(context.repoRoot, standard);
+
+  const title = options.driftRemediation
+    ? `Wath drift remediation: ${standardId} v${options.driftRemediation.toVersion} for <app from integration.params.json>`
+    : `Wath onboarding: ${standardId} for <app from integration.params.json>`;
 
   return `# Wath PR creation retry (attempt ${attempt})
 
@@ -277,14 +291,14 @@ Integration and verification on **${standardId}** are already on branch \`${work
 
 Verification is already complete on \`${workBranch}\`. **Do NOT run \`gh pr create\`.**
 
-Ensure Cursor opens **one PR** via \`autoCreatePR\` with title \`Wath onboarding: ${standardId} for <app from integration.params.json>\`.
-Complete the PR description per the onboarding template (include \`.wath/verify-summary.json\` evidence if present).
+Ensure Cursor opens **one PR** via \`autoCreatePR\` with title \`${title}\`.
+Complete the PR description per the template below (include verify evidence pasted in the body — do not commit \`.wath/\` on drift runs).
 
-${prSubmissionInstructions(context.repoRoot, standard)}
+${prInstructions}
 
 ## Response
 
-End with the PR URL (e.g. \`https://github.com/.../pull/N\`) once Cursor has opened the pull request.
+End with the PR URL (e.g. \`https://github.com/.../pull/N\`) once Cursor has opened the pull request, or \`DRIFT_NO_PR_REQUIRED\` if the diff vs \`main\` is empty.
 `;
 }
 

@@ -116,3 +116,42 @@ export function markVerifyResult(
   saveApplicationState(wathRoot, appId, state);
   return state;
 }
+
+/** Record drift compliance when verify passes with no integration artifact changes. */
+export function recordDriftResolvedWithoutPr(
+  appId: string,
+  standardId: string,
+  targetRegistryVersion: number
+): ApplicationState {
+  const wathRoot = resolveRepoRoot();
+  const state = loadApplicationState(wathRoot, appId);
+  if (!state?.integrations[standardId]) {
+    throw new Error(`No integration state for ${standardId}`);
+  }
+
+  const entry = state.integrations[standardId];
+  entry.status = "merged";
+  entry.standard_version = targetRegistryVersion;
+  entry.compliance = "in_compliance";
+  entry.last_verify = "passed";
+  entry.work_branch = null;
+  entry.integrate_agent_id = null;
+  state.current_standard_id = undefined;
+
+  appendHistory(
+    state,
+    "drift_resolved_no_pr",
+    `${standardId} v${targetRegistryVersion}`
+  );
+
+  const pending = Object.values(state.integrations).filter(
+    (v) => v.status === "pending" || v.status === "failed"
+  );
+  if (pending.length === 0 && !anyIntegrationPrOpen(state.integrations)) {
+    state.phase = "compliant";
+    appendHistory(state, "onboarding_complete");
+  }
+
+  saveApplicationState(wathRoot, appId, state);
+  return state;
+}

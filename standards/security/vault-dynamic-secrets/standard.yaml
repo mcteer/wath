@@ -43,3 +43,4 @@ onboarding:
     start: conformance/start-sandbox.sh
   consumer_rule: vault-dynamic-secrets
   pr_template: .github/PULL_REQUEST_TEMPLATE/wath-onboarding.md
+  drift_pr_template: .github/PULL_REQUEST_TEMPLATE/wath-drift-remediation.md

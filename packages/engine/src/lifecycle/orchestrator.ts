@@ -19,6 +19,7 @@ import {
   nextPendingStandardId,
 } from "./manifest.js";
 import { recordAgentPr } from "./merge.js";
+import { finalizeIntegrationValidate } from "./finalize-validate.js";
 import {
   buildDriftRemediatePrompt,
   buildIntegratePrompt,
@@ -26,7 +27,7 @@ import {
   buildManifestEnrichmentPrompt,
   buildValidatePrompt,
 } from "./prompts.js";
-import { resolveDriftRemediation } from "./drift-context.js";
+import { resolveDriftRemediation, type DriftRemediationInfo } from "./drift-context.js";
 import {
   appendHistory,
   loadApplicationState,
@@ -46,6 +47,7 @@ import { recordMerge as doRecordMerge } from "./merge.js";
 import { tryAcquireOnboardLock, releaseOnboardLock } from "./in-flight.js";
 import {
   integratingProgress,
+  driftResolvedProgress,
   prSubmittedProgress,
   validatingProgress,
 } from "./progress.js";
@@ -188,6 +190,51 @@ function recordPrCreateFailure(
   entry.retry_count = (entry.retry_count ?? 0) + 1;
   state.phase = "validate";
   appendHistory(state, "pr_create_failed", `${standardId} after ${attempt} attempt(s)`);
+}
+
+async function applyValidateFinalize(input: {
+  appId: string;
+  standardId: string;
+  repoUrl: string;
+  driftRemediation: DriftRemediationInfo | null;
+  agentResult: AgentLaunchResult;
+  workBranch?: string;
+  state: ApplicationState;
+  prRetries: number;
+  options: LifecycleOptions;
+}): Promise<{ state: ApplicationState; prUrl?: string }> {
+  const outcome = await finalizeIntegrationValidate({
+    appId: input.appId,
+    standardId: input.standardId,
+    repoUrl: input.repoUrl,
+    driftRemediation: input.driftRemediation,
+    agentResult: input.agentResult,
+    workBranch: input.workBranch,
+    state: input.state,
+  });
+
+  if (outcome.kind === "pr_opened") {
+    await notifyProgress(
+      input.options,
+      input.appId,
+      prSubmittedProgress(input.standardId, outcome.prUrl)
+    );
+    return { state: outcome.state, prUrl: outcome.prUrl };
+  }
+
+  if (outcome.kind === "drift_no_pr") {
+    const version = input.driftRemediation?.toVersion ?? 0;
+    await notifyProgress(
+      input.options,
+      input.appId,
+      driftResolvedProgress(input.standardId, version)
+    );
+    return { state: outcome.state };
+  }
+
+  recordPrCreateFailure(input.state, input.standardId, input.prRetries);
+  saveApplicationState(resolveRepoRoot(), input.appId, input.state);
+  return { state: input.state };
 }
 
 /** Multi-phase onboarding orchestrator. */
@@ -463,7 +510,8 @@ export async function runLifecycle(
             context,
             standardId,
             workBranch ?? orphanIntegrateBranch,
-            attempt
+            attempt,
+            driftRemediation ? { driftRemediation } : {}
           ),
         workBranch: orphanIntegrateBranch,
         startingRef: orphanIntegrateBranch,
@@ -479,15 +527,18 @@ export async function runLifecycle(
       });
 
       result.agent = agentResult;
-      if (agentResult.prUrl) {
-        recordAgentPr(appId, "integration", agentResult.prUrl, standardId);
-        result.state = loadApplicationState(repoRoot, appId)!;
-        await notifyProgress(options, appId, prSubmittedProgress(standardId, agentResult.prUrl));
-      } else {
-        recordPrCreateFailure(state, standardId, prRetries);
-        persistState();
-        result.state = state;
-      }
+      const finalized = await applyValidateFinalize({
+        appId,
+        standardId,
+        repoUrl: resolvedConsumer.repo,
+        driftRemediation,
+        agentResult,
+        workBranch: orphanIntegrateBranch,
+        state,
+        prRetries,
+        options,
+      });
+      result.state = finalized.state;
       return finishTrackedRun(appId, options, result);
     }
 
@@ -509,7 +560,8 @@ export async function runLifecycle(
             context,
             standardId!,
             workBranch ?? "cursor/<integration-branch>",
-            attempt
+            attempt,
+            driftRemediation ? { driftRemediation } : {}
           ),
         maxPrRetries: prRetries,
         config,
@@ -540,15 +592,18 @@ export async function runLifecycle(
       }
       appendHistory(state, "integrate_complete", standardId);
 
-      if (chain.validate.prUrl) {
-        recordAgentPr(appId, "integration", chain.validate.prUrl, standardId);
-        result.state = loadApplicationState(repoRoot, appId)!;
-        await notifyProgress(options, appId, prSubmittedProgress(standardId!, chain.validate.prUrl));
-      } else {
-        recordPrCreateFailure(state, standardId!, prRetries);
-        persistState();
-        result.state = state;
-      }
+      const finalized = await applyValidateFinalize({
+        appId,
+        standardId: standardId!,
+        repoUrl: resolvedConsumer.repo,
+        driftRemediation,
+        agentResult: chain.validate,
+        workBranch: branch ?? undefined,
+        state,
+        prRetries,
+        options,
+      });
+      result.state = finalized.state;
 
       return finishTrackedRun(appId, options, result);
     }
@@ -579,7 +634,8 @@ export async function runLifecycle(
                 context,
                 standardId!,
                 workBranch ?? validateBranch ?? "cursor/<integration-branch>",
-                attempt
+                attempt,
+                driftRemediation ? { driftRemediation } : {}
               ),
             workBranch: validateBranch,
             maxPrRetries: prRetries,
@@ -613,14 +669,19 @@ export async function runLifecycle(
     if (phase === "enrich_manifest" && agentResult.prUrl) {
       recordAgentPr(appId, "manifest", agentResult.prUrl);
       result.state = loadApplicationState(repoRoot, appId)!;
-    } else if (phase === "validate" && agentResult.prUrl && standardId) {
-      recordAgentPr(appId, "integration", agentResult.prUrl, standardId);
-      result.state = loadApplicationState(repoRoot, appId)!;
-      await notifyProgress(options, appId, prSubmittedProgress(standardId, agentResult.prUrl));
     } else if (phase === "validate" && standardId) {
-      recordPrCreateFailure(state, standardId, prRetries);
-      persistState();
-      result.state = state;
+      const finalized = await applyValidateFinalize({
+        appId,
+        standardId,
+        repoUrl: resolvedConsumer.repo,
+        driftRemediation,
+        agentResult,
+        workBranch: validateBranch,
+        state,
+        prRetries,
+        options,
+      });
+      result.state = finalized.state;
     } else if (phase === "integrate") {
       if (standardId && state.integrations[standardId]) {
         state.integrations[standardId].integrate_agent_id = agentResult.agentId;
