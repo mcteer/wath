@@ -5,14 +5,15 @@ standards:
   - id: vault-dynamic-secrets
     path: security/vault-dynamic-secrets
     owner: security-engineering
-    version: 7
+    version: 8
     rule_prefix: VDS
     version_notes: >
-      Registry v7 alignment only — standard.yaml content is unchanged (v5).
+      Registry v8 alignment only — standard.yaml content is unchanged (v5).
       Start from main, run conformance first, and apply a minimal diff.
       Do not regenerate vault/policy.hcl or other artifacts already compliant on main
       unless a conformance gate fails.
     version_changelog:
+      8: No standard content change. Verify compliance and fix gate failures only.
       7: Track registry version for vault-dynamic-secrets v5 content baseline.
     runtimes:
       - kubernetes
